@@ -60,7 +60,7 @@ Bond dimension $\chi = 2^\text{depth}$; all tiers keep peak memory under 400 MB.
 | 3 | 55 – 105 | **5** | 1.7 MB | χ = 32 (exact) |
 | 4 | 106 – 1,000 | **3** | 1 MB | χ = 8 (exact) |
 
-Statevector mode: max **25 qubits** at any depth.
+Statevector mode: max **20 qubits** at any depth.
 
 ---
 
@@ -180,7 +180,7 @@ Pass `mode=` to any `run()` call. The server selects `auto` by default.
 | User-facing mode | Internal mode | Max qubits | Best for |
 |---|---|---|---|
 | `auto` | (server-routed) | 1,000 | General circuits; server auto-routes |
-| `exact` | (statevector) | 25 | Unconditionally correct; small N |
+| `exact` | (statevector) | 20 | Unconditionally correct; small N |
 | `compressed` | (tensor network) | 1,000 | VQE, QAOA, chemistry ansätze |
 | `tensor` | (MPS) | 1,000 | 1D-structured, low-entanglement circuits |
 | `hamiltonian` | (operator algebra) | 1,000 | Hamiltonian simulation without gate decomposition |
