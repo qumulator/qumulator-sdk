@@ -216,6 +216,8 @@ print(h.value)
 | Compute Units / month | 500 CU (1 CU = 1 CPU-second of engine time) |
 | Max qubits | 1,000 |
 | Max depth (Tier 1, ≤ 20 q) | 20 |
+| Max depth (Tier 2, 21 – 54 q) | 6 |
+| Max depth (Tier 3, 55 – 105 q) | 5 |
 | Max depth (Tier 4, 106 – 1,000 q) | 3 |
 | Rate limit | 60 requests / minute |
 | Free tier availability | Beta only — may be discontinued at any time |
