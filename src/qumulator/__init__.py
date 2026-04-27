@@ -80,7 +80,12 @@ class QumulatorClient:
         Hafnian estimation for Gaussian boson sampling.
     """
 
-    def __init__(self, api_url: str, api_key: str) -> None:
+    def __init__(self, api_url: str = None, api_key: str = None) -> None:
+        import os
+        if api_url is None:
+            api_url = os.environ.get("QUMULATOR_API_URL", "https://api.qumulator.com")
+        if api_key is None:
+            api_key = os.environ.get("QUMULATOR_API_KEY", "")
         self.circuit  = CircuitClient(api_url, api_key)
         self.homo     = HomoClient(api_url, api_key)
         self.klt      = KLTClient(api_url, api_key)
