@@ -183,12 +183,22 @@ class QumulatorSimulator:
 
     def __init__(
         self,
-        client: Any,
+        client: Any = None,
         seed: Optional[Union[int, "np.random.Generator"]] = None,
     ) -> None:
         _require()
         # Accept either a QumulatorClient or a CircuitClient directly.
         from qumulator.circuit import CircuitClient
+        if client is None:
+            import os
+            from qumulator import QumulatorClient
+            api_key = os.environ.get("QUMULATOR_API_KEY", "")
+            api_url = os.environ.get("QUMULATOR_API_URL", "https://api.qumulator.com")
+            if not api_key:
+                raise ValueError(
+                    "No API key found. Set QUMULATOR_API_KEY or pass a QumulatorClient."
+                )
+            client = QumulatorClient(api_url=api_url, api_key=api_key)
         if hasattr(client, "circuit"):
             self._circuit_client: CircuitClient = client.circuit
         else:

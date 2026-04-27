@@ -20,4 +20,16 @@ def _cirq_simulator():
     return QumulatorSimulator
 
 
+# Direct exports — only available when the optional dependency is installed.
+try:
+    from qumulator.backends.qiskit_backend import QumulatorBackend
+except ImportError:
+    pass
+
+try:
+    from qumulator.backends.cirq_simulator import QumulatorSimulator
+except ImportError:
+    pass
+
+
 __all__ = ["QumulatorBackend", "QumulatorSimulator"]

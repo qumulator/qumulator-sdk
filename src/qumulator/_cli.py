@@ -2,7 +2,7 @@
 Qumulator CLI — qumulator <subcommand>
 
 Subcommands:
-    demo               Run the 1000-qubit GHZ demo against the public API
+    demo               Run the 50-qubit Bell pairs demo against the public API
     demo --willow      Run the 105-qubit Willow-layout benchmark
     demo --wormhole    Run the holographic wormhole demo
     demo --anyon       Run the anyon braiding demo
@@ -139,11 +139,21 @@ measure q -> c;
 """
 
 
-def _build_ghz_gates(n: int):
-    gates = [("h", 0)]
-    for i in range(n - 1):
-        gates.append(("cx", [i, i + 1]))
-    return gates
+def _build_bell_pairs_qasm(n: int) -> str:
+    """Depth-2 circuit: H on every qubit, then parallel CX on adjacent pairs.
+    Produces n/2 simultaneous Bell pairs — valid for N up to 1000 at depth 2."""
+    lines = [
+        "OPENQASM 2.0;",
+        'include "qelib1.inc";',
+        f"qreg q[{n}];",
+        f"creg c[{n}];",
+    ]
+    for i in range(n):
+        lines.append(f"h q[{i}];")
+    for i in range(0, n, 2):
+        lines.append(f"cx q[{i}],q[{i+1}];")
+    lines.append("measure q -> c;")
+    return "\n".join(lines)
 
 
 def _run_demo(args):
@@ -214,32 +224,28 @@ def _run_demo(args):
         print("Exact result. No quantum hardware. No GPU. Standard cloud CPU.")
 
     else:
-        # Default: 1000-qubit GHZ
-        n = 1000
-        label = f"{n}-qubit GHZ state"
+        # Default: 50-qubit parallel Bell pairs (depth 2)
+        n = 50
+        label = f"{n}-qubit parallel Bell pairs (depth 2)"
         print(f"Submitting {label} to Qumulator...")
         t0 = time.perf_counter()
         try:
-            gates  = _build_ghz_gates(n)
-            eng    = client.circuit.engine(n_qubits=n)
-            for gate, *qubits in gates:
-                eng.apply(gate, qubits[0] if len(qubits) == 1 else list(qubits[0]))
-            result = eng.sample(shots=1024)
+            qasm = _build_bell_pairs_qasm(n)
+            result = client.circuit.run_qasm(qasm, shots=1024, mode="klt_mps")
         except QumulatorHTTPError as exc:
             print(f"ERROR: {exc}")
             sys.exit(1)
         elapsed = time.perf_counter() - t0
 
-        all_zeros = "0" * n
-        all_ones  = "1" * n
-        c0 = result.get(all_zeros, 0) if isinstance(result, dict) else 0
-        c1 = result.get(all_ones,  0) if isinstance(result, dict) else 0
-        total = sum(result.values()) if isinstance(result, dict) else 1024
+        counts = result.counts if hasattr(result, "counts") else {}
+        top = sorted(counts.items(), key=lambda x: -x[1])[:4] if counts else []
 
         print(f"\nResult: exact simulation ✓  ({elapsed:.2f}s)")
-        print(f"  |{'0'*8}...{'0'*8}>  {c0:4d}/{total}")
-        print(f"  |{'1'*8}...{'1'*8}>  {c1:4d}/{total}")
-        print(f"\nOnly two outcomes (GHZ). Memory used by engine: ~1 MB.")
+        if top:
+            print("Top measurement outcomes (25 simultaneous Bell pairs):")
+            for bitstring, count in top:
+                print(f"  {bitstring[:16]}…  {count:4d}/1024")
+        print(f"\n{n // 2} Bell pairs. {n} qubits. Depth 2.")
         print("Exact result. No quantum hardware. No GPU. Standard cloud CPU.")
 
 

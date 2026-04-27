@@ -63,7 +63,7 @@ from qumulator.models import GaussianCertificate
 # ---------------------------------------------------------------------------
 
 _MODE_MAP: Dict[str, str] = {
-    "auto":        "klt_nexus_graph",
+    "auto":        "klt_mps",
     "exact":       "statevector",
     "compressed":  "klt_cluster_mps",
     "tensor":      "klt_mps",
@@ -388,6 +388,77 @@ class CircuitClient(_BaseClient):
             return_statevector=return_statevector,
             return_probabilities=return_probabilities,
             return_entropy_map=return_entropy_map,
+        )
+
+    def run_qasm(
+        self,
+        qasm_source: str,
+        shots: int = 1024,
+        seed: Optional[int] = None,
+        mode: str = "auto",
+        bond_dim: Optional[int] = None,
+    ) -> "CircuitResult":
+        """
+        Submit an OpenQASM 2 or 3 string and return the result.
+
+        Parameters
+        ----------
+        qasm_source : str
+            OpenQASM 2 or 3 source code.
+        shots : int
+            Number of measurement samples.
+        seed : int, optional
+            RNG seed for reproducible sampling.
+        mode : str, optional
+            Execution mode hint.
+        bond_dim : int, optional
+            Bond-dimension cap for ``'tensor'`` mode.
+        """
+        backend_mode = _MODE_MAP.get(mode, mode)
+        body: Dict[str, Any] = {
+            "qasm":  qasm_source,
+            "shots": shots,
+            "mode":  backend_mode,
+        }
+        if bond_dim is not None: body["bond_dim"] = bond_dim
+        if seed     is not None: body["seed"]     = seed
+
+        submit   = self._post("/circuits", body)
+        job_id   = submit["job_id"]
+        deadline = _time.monotonic() + 3600.0
+        while True:
+            job = self._get(f"/circuits/{job_id}")
+            if job["status"] in ("completed", "failed"):
+                break
+            if _time.monotonic() > deadline:
+                raise TimeoutError(
+                    f"Circuit job {job_id} did not complete within 3600 s"
+                )
+            _time.sleep(2.0)
+
+        if job["status"] == "failed":
+            raise QumulatorHTTPError(500, job.get("error") or "Circuit simulation failed")
+
+        result = job.get("result") or {}
+        sv = None
+        if "statevector" in result:
+            sv = np.array(
+                [complex(r, i) for r, i in result["statevector"]], dtype=complex
+            )
+        probs = (
+            np.array(result["probabilities"]) if "probabilities" in result else None
+        )
+        gc_raw = result.get("gaussian_certificate")
+        gc = GaussianCertificate(**gc_raw) if gc_raw else None
+
+        return CircuitResult(
+            counts=result.get("counts", {}),
+            n_qubits=result.get("n_qubits", 0),
+            shots=result.get("shots", shots),
+            statevector=sv,
+            probabilities=probs,
+            entropy_map=result.get("entropy_map"),
+            gaussian_certificate=gc,
         )
 
     def _execute(self, **kwargs: Any) -> CircuitResult:

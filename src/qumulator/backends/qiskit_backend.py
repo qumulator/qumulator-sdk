@@ -190,9 +190,19 @@ class QumulatorBackend:
     backend_version: str = "1.0.0"
     description: str = "Quantum circuit simulator via the Qumulator API"
 
-    def __init__(self, client: Any, max_qubits: int = 50) -> None:
+    def __init__(self, client: Any = None, max_qubits: int = 50) -> None:
         _require()
         from qumulator.circuit import CircuitClient
+        if client is None:
+            import os
+            from qumulator import QumulatorClient
+            api_key = os.environ.get("QUMULATOR_API_KEY", "")
+            api_url = os.environ.get("QUMULATOR_API_URL", "https://api.qumulator.com")
+            if not api_key:
+                raise ValueError(
+                    "No API key found. Set QUMULATOR_API_KEY or pass a QumulatorClient."
+                )
+            client = QumulatorClient(api_url=api_url, api_key=api_key)
         if hasattr(client, "circuit"):
             self._circuit_client: CircuitClient = client.circuit
         else:
@@ -240,7 +250,8 @@ class QumulatorBackend:
 
         transpiled = transpile(
             circuits,
-            basis_gates=_SUPPORTED_GATES,
+            basis_gates=[g for g in _SUPPORTED_GATES
+                         if g not in ("reset", "barrier", "measure")],
             optimization_level=0,
         )
         if not isinstance(transpiled, list):
