@@ -53,12 +53,16 @@ statevector simulation to double-precision floating point (< 10⁻¹⁴ L² erro
 
 Bond dimension $\chi = 2^\text{depth}$; all tiers keep peak memory under 400 MB.
 
-| Tier | Qubit range | Max depth | Peak memory | Notes |
-|------|-------------|-----------|-------------|-------|
-| 1 | 1 – 20 | **20** | 335 MB | Exact for structured circuits |
-| 2 | 21 – 54 | **6** | 3.5 MB | χ = 64 (exact) |
-| 3 | 55 – 105 | **5** | 1.7 MB | χ = 32 (exact) |
-| 4 | 106 – 1,000 | **3** | 1 MB | χ = 8 (exact) |
+| Tier | Qubit range | Max entangling depth | χ | Peak memory | Notes |
+|------|-------------|---------------------|---|-------------|-------|
+| 1 | 1 – 20 | **20** | 1024 | 335 MB | Exact for structured circuits |
+| 2 | 21 – 54 | **9** | 512 | 226 MB | Exact (2⁹ = 512) |
+| 3 | 55 – 105 | **8** | 256 | 110 MB | Exact (2⁸ = 256) |
+| 4 | 106 – 1,000 | **7** | 128 | 262 MB | Exact (2⁷ = 128) |
+
+**Depth is counted in entangling layers only** — single-qubit gates (H, Rz, T, etc.) do not
+count toward the depth limit and are not restricted. Requests exceeding the tier depth limit
+return HTTP 422 with a self-documenting error message.
 
 Statevector mode: max **20 qubits** at any depth.
 
