@@ -86,10 +86,21 @@ pip install "qumulator-sdk[all]"      # everything
 
 ## Get a free API key
 
+**Mac / Linux**
 ```bash
 curl -s -X POST https://api.qumulator.com/keys \
      -H "Content-Type: application/json" \
-     -d '{"name": "my-key"}' | python -m json.tool
+     -d '{"name": "my-key"}'
+```
+
+**Windows (PowerShell)**
+```powershell
+Invoke-WebRequest `
+  -Uri "https://api.qumulator.com/keys" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body '{"name":"my-key"}' `
+  -UseBasicParsing
 ```
 
 Or via the CLI (after install):
