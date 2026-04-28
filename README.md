@@ -111,15 +111,16 @@ client = QumulatorClient(
     api_key=os.environ["QUMULATOR_API_KEY"],
 )
 
-# 1000-qubit GHZ state via the fluent builder API
+# 500 parallel Bell pairs across 1,000 qubits (depth 1)
 eng = client.circuit.engine(n_qubits=1000)
-eng.apply("h", 0)
-for i in range(999):
-    eng.apply("cx", [i, i + 1])
+for i in range(0, 1000, 2):
+    eng.apply("h", i)           # Hadamard on even qubits (parallel)
+for i in range(0, 1000, 2):
+    eng.apply("cx", [i, i + 1]) # entangle each pair (parallel)
 
-result = eng.sample(shots=1024)
-print(result)
-# {'0000...0000': 512, '1111...1111': 512}
+result = eng.sample(shots=10)
+print(result.counts)       # e.g. {'0101100110...': 1, '1010011001...': 1, ...}
+print(result.most_probable)
 # Exact result. No quantum hardware. No GPU. Standard cloud CPU.
 ```
 
