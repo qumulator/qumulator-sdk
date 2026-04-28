@@ -219,8 +219,7 @@ print(h.value)
 |---|---|
 | Compute Units / month | 500 CU (1 CU = 1 CPU-second of engine time) |
 | Max qubits (statevector mode) | 20 |
-| Max qubits (MPS mode) | 54 |
-| Max depth (MPS, ≤ 54 q) | 9 |
+| Max qubits (MPS mode) | 1,000 (all tiers) |
 | Rate limit | 1 request / minute |
 | Daily limit | 100 requests / day |
 | Free tier availability | Beta only — may be discontinued at any time |
