@@ -215,6 +215,34 @@ class TestCircuitClientRun:
         assert result.statevector.shape == (4,)
         assert math.isclose(abs(result.statevector[0]), 0.7071, abs_tol=1e-4)
 
+    def test_statevector_real_imag_format_deserialised(self, client):
+        """Engine returns statevector_real + statevector_imag; SDK must reconstruct."""
+        sv_override = {
+            "statevector_real": [0.7071, 0.0, 0.0, 0.7071],
+            "statevector_imag": [0.0,    0.0, 0.0, 0.0],
+        }
+        _mock_circuit_run(sv_override)
+        result = client.run(gates=[], n_qubits=2, return_statevector=True)
+        assert result.statevector is not None
+        assert result.statevector.dtype == complex
+        assert result.statevector.shape == (4,)
+        assert math.isclose(abs(result.statevector[0]), 0.7071, abs_tol=1e-4)
+        assert math.isclose(abs(result.statevector[3]), 0.7071, abs_tol=1e-4)
+        assert result.statevector[1] == 0j
+        assert result.statevector[2] == 0j
+
+    def test_statevector_real_only_zero_imag(self, client):
+        """Engine may omit statevector_imag when all-zero; SDK must handle gracefully."""
+        sv_override = {
+            "statevector_real": [1.0, 0.0],
+        }
+        _mock_circuit_run(sv_override)
+        result = client.run(gates=[], n_qubits=1, return_statevector=True)
+        assert result.statevector is not None
+        assert result.statevector.shape == (2,)
+        assert result.statevector[0] == complex(1.0, 0.0)
+        assert result.statevector[1] == complex(0.0, 0.0)
+
     def test_entropy_map_deserialised(self, client):
         _mock_circuit_run({"entropy_map": [1.0, 1.0]})
         result = client.run(gates=[], n_qubits=2, return_entropy_map=True)
@@ -301,3 +329,110 @@ class TestGateToInstruction:
         assert "params" not in out
         assert out["matrix_real"] == [[s, s], [s, -s]]
         assert out["matrix_imag"] == [[0.0, 0.0], [0.0, 0.0]]
+
+
+# ---------------------------------------------------------------------------
+#  Statevector real/imag parsing (fix: engine returns separate arrays)
+# ---------------------------------------------------------------------------
+
+
+class TestStatevectorParsing:
+    """The engine stores the statevector as statevector_real + statevector_imag.
+    The SDK must reassemble them into a single complex numpy array."""
+
+    def _make_client(self) -> CircuitClient:
+        return CircuitClient(api_url=API_URL, api_key=API_KEY)
+
+    def _result_response(self, result_extra: dict) -> dict:
+        base = dict(_RESULT_RESPONSE)
+        base["result"] = {**base["result"], **result_extra}
+        return base
+
+    def test_statevector_real_imag_bell_state(self):
+        """Bell state: |00>+|11> both amplitude 1/sqrt(2), zero imaginary."""
+        s = 0.7071067811865476
+        with respx.mock:
+            respx.post(f"{API_URL}/circuits").mock(
+                return_value=httpx.Response(202, json=_SUBMIT_RESPONSE)
+            )
+            respx.get(f"{API_URL}/circuits/test-job-01").mock(
+                return_value=httpx.Response(
+                    200,
+                    json=self._result_response({
+                        "statevector_real": [s, 0.0, 0.0, s],
+                        "statevector_imag": [0.0, 0.0, 0.0, 0.0],
+                    }),
+                )
+            )
+            result = self._make_client().run(gates=[], n_qubits=2, return_statevector=True)
+
+        assert result.statevector is not None
+        assert result.statevector.dtype == complex
+        assert result.statevector.shape == (4,)
+        assert math.isclose(result.statevector[0].real, s, abs_tol=1e-10)
+        assert math.isclose(result.statevector[3].real, s, abs_tol=1e-10)
+        assert result.statevector[1] == 0j
+        assert result.statevector[2] == 0j
+
+    def test_statevector_with_imaginary_parts(self):
+        """State with non-zero imaginary components (e.g., after Ry gate)."""
+        with respx.mock:
+            respx.post(f"{API_URL}/circuits").mock(
+                return_value=httpx.Response(202, json=_SUBMIT_RESPONSE)
+            )
+            respx.get(f"{API_URL}/circuits/test-job-01").mock(
+                return_value=httpx.Response(
+                    200,
+                    json=self._result_response({
+                        "statevector_real": [0.0, 0.0],
+                        "statevector_imag": [0.0, 1.0],
+                    }),
+                )
+            )
+            result = self._make_client().run(gates=[], n_qubits=1, return_statevector=True)
+
+        assert result.statevector is not None
+        assert result.statevector[0] == 0j
+        assert result.statevector[1] == complex(0.0, 1.0)
+
+    def test_statevector_imag_omitted_defaults_to_zero(self):
+        """statevector_imag missing entirely -> all-real state."""
+        with respx.mock:
+            respx.post(f"{API_URL}/circuits").mock(
+                return_value=httpx.Response(202, json=_SUBMIT_RESPONSE)
+            )
+            respx.get(f"{API_URL}/circuits/test-job-01").mock(
+                return_value=httpx.Response(
+                    200,
+                    json=self._result_response({
+                        "statevector_real": [1.0, 0.0],
+                    }),
+                )
+            )
+            result = self._make_client().run(gates=[], n_qubits=1, return_statevector=True)
+
+        assert result.statevector is not None
+        assert result.statevector.shape == (2,)
+        assert result.statevector[0] == complex(1.0, 0.0)
+        assert result.statevector[1] == complex(0.0, 0.0)
+
+    def test_old_interleaved_format_still_works(self):
+        """Legacy statevector format [[real, imag], ...] remains supported."""
+        s = 0.7071067811865476
+        with respx.mock:
+            respx.post(f"{API_URL}/circuits").mock(
+                return_value=httpx.Response(202, json=_SUBMIT_RESPONSE)
+            )
+            respx.get(f"{API_URL}/circuits/test-job-01").mock(
+                return_value=httpx.Response(
+                    200,
+                    json=self._result_response({
+                        "statevector": [[s, 0.0], [0.0, 0.0], [0.0, 0.0], [s, 0.0]],
+                    }),
+                )
+            )
+            result = self._make_client().run(gates=[], n_qubits=2, return_statevector=True)
+
+        assert result.statevector is not None
+        assert result.statevector.shape == (4,)
+        assert math.isclose(result.statevector[0].real, s, abs_tol=1e-10)

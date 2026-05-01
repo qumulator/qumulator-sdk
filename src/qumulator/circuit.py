@@ -445,6 +445,10 @@ class CircuitClient(_BaseClient):
             sv = np.array(
                 [complex(r, i) for r, i in result["statevector"]], dtype=complex
             )
+        elif result.get("statevector_real") is not None:
+            sv_re = result["statevector_real"]
+            sv_im = result.get("statevector_imag") or [0.0] * len(sv_re)
+            sv = np.array([complex(r, i) for r, i in zip(sv_re, sv_im)], dtype=complex)
         probs = (
             np.array(result["probabilities"]) if "probabilities" in result else None
         )
@@ -511,6 +515,10 @@ class CircuitClient(_BaseClient):
             sv = np.array(
                 [complex(r, i) for r, i in result["statevector"]], dtype=complex
             )
+        elif result.get("statevector_real") is not None:
+            sv_re = result["statevector_real"]
+            sv_im = result.get("statevector_imag") or [0.0] * len(sv_re)
+            sv = np.array([complex(r, i) for r, i in zip(sv_re, sv_im)], dtype=complex)
         probs = (
             np.array(result["probabilities"]) if "probabilities" in result else None
         )
