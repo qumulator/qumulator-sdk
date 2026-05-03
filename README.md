@@ -197,10 +197,12 @@ Pass `mode=` to any `run()` call. The server selects `auto` by default.
 |---|---|---|---|
 | `auto` | (server-routed) | 1,000 | General circuits; server auto-routes |
 | `exact` | (statevector) | 20 | Unconditionally correct; small N |
+| `cluster` | (cluster-exact) | 1,000 | Exact for any circuit; no 2^N array; memory O(Σ 2^k_c); TVD = 0 |
 | `compressed` | (tensor network) | 1,000 | VQE, QAOA, chemistry ansätze |
 | `tensor` | (MPS) | 1,000 | 1D-structured, low-entanglement circuits |
 | `hamiltonian` | (operator algebra) | 1,000 | Hamiltonian simulation without gate decomposition |
 | `gaussian` | (covariance matrix) | unlimited | Clifford circuits; returns Wigner negativity certificate |
+| `greens` | (Green's function) | 1,000 | Free-fermion / Gaussian circuits; O(N²) memory, exact 1-RDM |
 
 ---
 
@@ -222,6 +224,77 @@ A = np.random.randn(8, 8); A = (A + A.T) / 2
 h = client.hafnian.run(A.tolist())
 print(h.value)
 ```
+
+---
+
+## Hamiltonian time evolution (TEBD)
+
+Real-time Suzuki–Trotter evolution, imaginary-time ground states, and
+Kibble–Zurek quench protocols — all via `client.evolve`.
+
+```python
+# Real-time TEBD evolution — Ising TFIM
+ev = client.evolve.run(
+    n_qubits=20,
+    hamiltonian={"preset": "ising_1d", "J": 1.0, "h": 1.0},
+    t_max=2.0, dt=0.1,
+    observables=["entropy", "magnetization", "qfi"],
+)
+for step in ev.trajectory:
+    print(step["t"], step["magnetization"], step.get("qfi"))
+
+# Imaginary-time ground state
+gs = client.evolve.ground(
+    n_qubits=20,
+    hamiltonian={"preset": "ising_1d", "J": 1.0, "h": 0.5},
+)
+print(gs.energy, gs.bond_entropy)
+
+# Kibble–Zurek quench — measure topological defect density vs. KZM prediction
+qkzm = client.evolve.qkzm(
+    n_qubits=40, J=1.0, h0=5.0, h_f=0.2, t_ramp=10.0,
+)
+print(qkzm.kzm_defect_density, qkzm.kzm_prediction)
+
+# Collapse-and-revival sudden quench
+revival = client.evolve.quench(n_qubits=20, h=2.0, t_max=10.0)
+```
+
+Hamiltonian presets: `"ising_1d"`, `"xx_model"`, `"heisenberg"`, `"kuramoto_ising"`.
+Custom Pauli-sum terms are also supported via `hamiltonian={"terms": [...]}`.
+
+---
+
+## Entanglement diagnostics
+
+Every circuit result returns a full diagnostics payload — no extra call needed.
+
+```python
+result = client.circuit.run(
+    n_qubits=8,
+    gates=[("h", 0), ("cx", [0, 1]), ("cx", [1, 2])],
+    shots=1024,
+)
+
+# QFI-based entanglement certification (Tóth–Gühne 2012)
+print(result.f_Q_density)        # f_Q > k → genuine (k+1)-partite entanglement
+print(result.entanglement_depth) # floor(f_Q) — certified entanglement depth
+
+# Accuracy bound and phase
+print(result.predicted_tvd)      # TVD upper bound; 0.0 for exact modes
+print(result.entropy_map)        # per-bond von Neumann entropy (bits)
+```
+
+The QFI density is the Tóth–Gühne (2012) multipartite entanglement witness computed
+from the ZZ correlator matrix — an established, independently verifiable quantity:
+
+- `f_Q_density = 0` — consistent with a product state
+- `f_Q_density > k` — at least (k+1)-partite genuine entanglement certified
+- `entanglement_depth = floor(f_Q_density)`
+
+`predicted_tvd` is a model-based upper bound on the total variation distance to the
+exact distribution, calibrated per KLT chaos phase (Z1–Z5). It is `0.0` for
+unconditionally exact modes (`"exact"`, `"cluster"`).
 
 ---
 

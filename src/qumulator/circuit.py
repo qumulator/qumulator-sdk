@@ -114,6 +114,29 @@ class CircuitResult:
     """Populated when ``mode='gaussian'`` is used.  Contains the circuit
     classification and entanglement regime diagnostics."""
 
+    f_Q_density: Optional[float] = None
+    """Quantum Fisher Information density (Tóth–Gühne 2012).
+
+    ``f_Q > k`` certifies genuine ``(k+1)``-partite entanglement.
+    Values above 1 indicate multi-partite entanglement; values above
+    ``n_qubits - 1`` indicate full ``n``-partite entanglement.
+    Always returned (never ``None``) unless the mode does not support it."""
+
+    entanglement_depth: Optional[int] = None
+    """Certified entanglement depth: ``floor(f_Q_density)``.
+
+    The output state is guaranteed to contain genuine entanglement spanning
+    at least ``entanglement_depth + 1`` qubits.  A value of 0 means the
+    state is consistent with a product state; 1 means at least pairwise
+    entanglement is certified, and so on."""
+
+    predicted_tvd: Optional[float] = None
+    """Predicted total variation distance (TVD) to the exact output distribution.
+
+    Model-based accuracy bound calibrated per KLT chaos phase (Z1–Z5).
+    ``0.0`` for unconditionally exact modes (``'exact'``, ``'cluster'``).
+    Use this as a conservative upper bound on the simulation error."""
+
     @property
     def most_probable(self) -> str:
         """Most probable measurement outcome bitstring."""
@@ -473,6 +496,9 @@ class CircuitClient(_BaseClient):
             probabilities=probs,
             entropy_map=result.get("entropy_map"),
             gaussian_certificate=gc,
+            f_Q_density=result.get("f_Q_density"),
+            entanglement_depth=result.get("entanglement_depth"),
+            predicted_tvd=result.get("predicted_tvd"),
         )
 
     def _execute(self, **kwargs: Any) -> CircuitResult:
@@ -543,6 +569,9 @@ class CircuitClient(_BaseClient):
             probabilities=probs,
             entropy_map=result.get("entropy_map"),
             gaussian_certificate=gc,
+            f_Q_density=result.get("f_Q_density"),
+            entanglement_depth=result.get("entanglement_depth"),
+            predicted_tvd=result.get("predicted_tvd"),
         )
 
 
