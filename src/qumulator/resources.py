@@ -43,6 +43,7 @@ class HomoClient(_BaseClient):
         )
         if not status.ok:
             raise QumulatorHTTPError(500, status.error or "Job failed")
+        assert status.result is not None
         return HomoResult(**status.result)
 
 
@@ -132,6 +133,7 @@ class KLTClient(_BaseClient):
         status = self._submit_and_wait("/klt/relax", body, timeout=timeout)
         if not status.ok:
             raise QumulatorHTTPError(500, status.error or "Job failed")
+        assert status.result is not None
         return KLTResult(**status.result)
 
 
@@ -174,6 +176,7 @@ class HafnianClient(_BaseClient):
         status = self._submit_and_wait("/hafnian", body, timeout=timeout)
         if not status.ok:
             raise QumulatorHTTPError(500, status.error or "Job failed")
+        assert status.result is not None
         return HafnianResult(**status.result)
 
 

@@ -137,6 +137,14 @@ class CircuitResult:
     ``0.0`` for unconditionally exact modes (``'exact'``, ``'cluster'``).
     Use this as a conservative upper bound on the simulation error."""
 
+    phase_label: Optional[str] = None
+    """KLT chaos-regime label (``'Z1'``–``'Z5'``).
+
+    Indicates which Lorenz-family attractor regime the circuit's entanglement
+    structure falls into.  Z1 is the lowest-entropy / most regular regime;
+    Z5 is the Haar-random / maximal-entropy regime.
+    ``None`` when the backend does not return this field."""
+
     @property
     def most_probable(self) -> str:
         """Most probable measurement outcome bitstring."""
@@ -499,6 +507,7 @@ class CircuitClient(_BaseClient):
             f_Q_density=result.get("f_Q_density"),
             entanglement_depth=result.get("entanglement_depth"),
             predicted_tvd=result.get("predicted_tvd"),
+            phase_label=result.get("phase_label"),
         )
 
     def _execute(self, **kwargs: Any) -> CircuitResult:
@@ -572,6 +581,7 @@ class CircuitClient(_BaseClient):
             f_Q_density=result.get("f_Q_density"),
             entanglement_depth=result.get("entanglement_depth"),
             predicted_tvd=result.get("predicted_tvd"),
+            phase_label=result.get("phase_label"),
         )
 
 

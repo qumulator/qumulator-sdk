@@ -79,7 +79,7 @@ class _QumulatorStateVectorResult:
     def __init__(
         self,
         circuit: "cirq.Circuit",
-        final_state_vector: np.ndarray,
+        final_state_vector: Optional[np.ndarray],
         qubit_order: List["cirq.Qid"],
     ) -> None:
         self.circuit = circuit

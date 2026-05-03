@@ -327,6 +327,10 @@ Click to open in Google Colab — no install required, just add your API key:
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/klt_cluster_demo.ipynb) | **Cluster engine** — exact simulation without 2^N state vector; memory O(Σ 2^k_c) |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/klt_greens_demo.ipynb) | **Green's function engine** — free-fermion circuits, O(N²) memory, entropy map |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/tebd_quench_demo.ipynb) | **Collapse & revival / QKZM** — TEBD Hamiltonian evolution, Kibble-Zurek scaling |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/prime_factoring.ipynb) | **Prime factorization** — factors N=35 via quantum-inspired energy landscape |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/chsh_bell.ipynb) | **CHSH Bell inequality** — Bell state + CHSH correlator, S=2√2 Tsirelson bound |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h12_vqe.ipynb) | **H₁₂ chain ground state** — 12-site Ising chain solved with KLT solver |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/vortex_geometry.ipynb) | **Vortex geometry** — entanglement growth in random H/CX/Rz brickwork circuits |
 
 ---
 

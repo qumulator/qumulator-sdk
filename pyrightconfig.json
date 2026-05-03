@@ -1,0 +1,8 @@
+{
+  "include": ["src"],
+  "ignore": [
+    "src/qumulator/backends/cirq_simulator.py",
+    "src/qumulator/backends/qiskit_backend.py"
+  ],
+  "pythonVersion": "3.12"
+}
