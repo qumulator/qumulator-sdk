@@ -46,6 +46,14 @@ Execution modes
                    ``result.gaussian_certificate`` classifying the circuit as
                    simulable, likely Gaussian, or requiring a correction.
                    Memory scales as O(n²) instead of O(2ⁿ).
+``'cluster'``      Exact cluster-factorization engine. No 2ⁿ state vector is
+                   ever allocated. Memory O(Σ 2^k_c) where k_c is the size of
+                   each entangled cluster. Exact for ALL circuits (TVD = 0).
+                   Returns per-qubit marginal probabilities.
+``'greens'``       Green's function / Bloch encoding. Exact within the
+                   free-fermion (Gaussian) subspace. O(N²) memory. Returns
+                   1-RDM and entropy map. Note: CNOT in the exchange subspace
+                   is not faithfully represented; use ``'cluster'`` instead.
 """
 from __future__ import annotations
 
@@ -69,6 +77,8 @@ _MODE_MAP: Dict[str, str] = {
     "tensor":      "klt_mps",
     "hamiltonian": "klt_stone",
     "gaussian":    "klt_gaussian",
+    "cluster":     "klt_cluster",
+    "greens":      "klt_greens",
 }
 
 

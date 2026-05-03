@@ -6,6 +6,7 @@ Subcommands:
     demo --willow      Run the 105-qubit Willow-layout benchmark
     demo --wormhole    Run the holographic wormhole demo
     demo --anyon       Run the anyon braiding demo
+    demo --evolve      Run a TEBD Hamiltonian time evolution demo (10-site TFIM)
     key                Print instructions to get a free API key
     run <file.qasm>    Submit a QASM file and print the result
 
@@ -223,6 +224,35 @@ def _run_demo(args):
         print("Non-Abelian Fibonacci anyon braiding — matches Microsoft topological target.")
         print("Exact result. No quantum hardware. No GPU. Standard cloud CPU.")
 
+    elif args.evolve:
+        label = "10-site transverse-field Ising TEBD (real-time evolution)"
+        print(f"Submitting {label} to Qumulator...")
+        from qumulator._http import QumulatorHTTPError
+        t0 = time.perf_counter()
+        try:
+            result = client.evolve.run(
+                n_qubits=10,
+                hamiltonian={"preset": "ising_1d", "J": 1.0, "h": 1.0},
+                t_max=1.0,
+                dt=0.1,
+                observables=["entropy", "magnetization", "qfi"],
+            )
+        except QumulatorHTTPError as exc:
+            print(f"ERROR: {exc}")
+            sys.exit(1)
+        elapsed = time.perf_counter() - t0
+        print(f"\nResult: TEBD evolution complete ({elapsed:.2f}s)")
+        traj = getattr(result, "trajectory", [])
+        if traj:
+            print(f"Trajectory steps: {len(traj)}")
+            for pt in traj:
+                t_val   = pt.get("t", "?")
+                entropy = pt.get("max_entropy", pt.get("entropy", "?"))
+                qfi     = pt.get("f_Q_density", pt.get("qfi", "?"))
+                print(f"  t={t_val:.2f}  S_max={entropy}  QFI={qfi}")
+        print("\nTransverse-field Ising model (N=10, J=1, h=1).")
+        print("TEBD Suzuki-Trotter 2nd order. Exact in the low-entanglement regime.")
+
     else:
         # Default: 50-qubit parallel Bell pairs (depth 2)
         n = 50
@@ -331,6 +361,8 @@ def _build_parser() -> argparse.ArgumentParser:
                             help="12-qubit holographic wormhole")
     demo_group.add_argument("--anyon",    action="store_true",
                             help="4-qubit Fibonacci anyon braiding")
+    demo_group.add_argument("--evolve",   action="store_true",
+                            help="10-site TFIM Hamiltonian time evolution (TEBD)")
     demo_p.set_defaults(func=_run_demo)
 
     # key

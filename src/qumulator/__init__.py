@@ -35,18 +35,50 @@ Usage
     A = np.random.randn(8, 8); A = (A + A.T) / 2
     h = client.hafnian.run(A.tolist())
     print(h.value)
+
+    # --- Hamiltonian time evolution (TEBD) ---
+    result = client.evolve.run(
+        n_qubits=10,
+        hamiltonian={"preset": "ising_1d", "J": 1.0, "h": 1.0},
+        t_max=2.0, dt=0.05,
+        observables=["entropy", "qfi", "magnetization"],
+    )
+    for pt in result.trajectory:
+        print(pt["t"], pt.get("qfi"))
+
+    # --- Ground state ---
+    gs = client.evolve.ground(
+        n_qubits=10,
+        hamiltonian={"preset": "ising_1d", "J": 1.0, "h": 1.0},
+    )
+    print(gs.energy, gs.bond_entropy)
+
+    # --- QKZM quench ---
+    q = client.evolve.qkzm(n_qubits=20, J=1.0, h0=5.0, h_f=0.2, t_ramp=5.0)
+    print(q.kzm_defect_density)   # n_d ∝ τ_Q^{-1/2}
+
+    # --- Multi-asset 2D lattice ---
+    lat = client.evolve.lattice(n_rows=4, n_cols=4)
+    print(lat.bond_entropy_2d)    # 4×4 entanglement heatmap
 """
 
 from qumulator._http import QumulatorHTTPError
 from qumulator.circuit import CircuitClient, CircuitEngine, CircuitResult
 from qumulator.models import (
+    EvolveResult,
     GaussianCertificate,
+    GroundStateResult,
     HafnianResult,
+    HamiltonianSpec,
+    HamiltonianTerm,
     HomoResult,
     JobStatus,
     KLTResult,
+    LatticeResult,
+    QKZMResult,
 )
 from qumulator.resources import (
+    EvolveClient,
     HafnianClient,
     HomoClient,
     KLTClient,
@@ -78,9 +110,12 @@ class QumulatorClient:
         Ground-state energy optimization.
     hafnian : HafnianClient
         Hafnian estimation for Gaussian boson sampling.
+    evolve : EvolveClient
+        Hamiltonian time evolution (TEBD): real-time, imaginary-time,
+        sudden quench, QKZM protocol, and 2D lattice regime classifier.
     """
 
-    def __init__(self, api_url: str = None, api_key: str = None) -> None:
+    def __init__(self, api_url: str | None = None, api_key: str | None = None) -> None:
         import os
         if api_url is None:
             api_url = os.environ.get("QUMULATOR_API_URL", "https://api.qumulator.com")
@@ -91,6 +126,7 @@ class QumulatorClient:
         self.klt      = KLTClient(api_url, api_key)
         self.hafnian  = HafnianClient(api_url, api_key)
         self.notebook = NotebookClient(api_url, api_key)
+        self.evolve   = EvolveClient(api_url, api_key)
 
 
 __all__ = [
@@ -105,12 +141,20 @@ __all__ = [
     "KLTClient",
     "HafnianClient",
     "NotebookClient",
+    "EvolveClient",
     # Result models
     "HomoResult",
     "KLTResult",
     "HafnianResult",
     "GaussianCertificate",
     "JobStatus",
+    # Evolve models
+    "HamiltonianTerm",
+    "HamiltonianSpec",
+    "EvolveResult",
+    "GroundStateResult",
+    "QKZMResult",
+    "LatticeResult",
     # Errors
     "QumulatorHTTPError",
 ]
