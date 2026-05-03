@@ -251,6 +251,9 @@ Click to open in Google Colab — no install required, just add your API key:
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/anyon_braiding.ipynb) | **Anyon braiding** — Fibonacci anyons, matches Microsoft topological target |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/time_crystal.ipynb) | **Discrete time crystal** — MBL Floquet, matches Google Sycamore 2021 |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/qubo.ipynb) | **QUBO optimisation** — 100-variable dense combinatorial optimisation |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/klt_cluster_demo.ipynb) | **Cluster engine** — exact simulation without 2^N state vector; memory O(Σ 2^k_c) |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/klt_greens_demo.ipynb) | **Green's function engine** — free-fermion circuits, O(N²) memory, entropy map |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/tebd_quench_demo.ipynb) | **Collapse & revival / QKZM** — TEBD Hamiltonian evolution, Kibble-Zurek scaling |
 
 ---
 
