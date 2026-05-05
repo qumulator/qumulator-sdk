@@ -1,0 +1,63 @@
+site_name: Qumulator
+site_url: https://qumulator.github.io/qumulator-sdk/
+site_description: >
+  Qumulator API & SDK Reference — simulate quantum circuits, spin systems,
+  photonic amplitudes, and molecular orbitals on classical hardware. No GPU. No
+  quantum computer required.
+repo_name: qumulator/qumulator-sdk
+repo_url: https://github.com/qumulator/qumulator-sdk
+edit_uri: ""
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: deep purple
+    accent: deep purple
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+nav:
+  - Getting Started:
+      - Quickstart: index.md
+      - Authentication: authentication.md
+  - Python SDK:
+      - Installation: install.md
+      - Circuit Simulation: circuit.md
+      - OpenQASM Input: qasm.md
+      - Simulation Modes: modes.md
+      - Time Evolution (TEBD): evolve.md
+      - Qiskit Integration: qiskit.md
+      - Cirq Integration: cirq.md
+      - Spin Ground States: spin.md
+      - Photonic Amplitudes: photonics.md
+      - Molecular Orbitals: molecular.md
+      - Notebooks: notebooks.md
+  - REST API:
+      - API Keys: rest-keys.md
+      - Circuits: rest-circuits.md
+      - Jobs & Polling: rest-jobs.md
+  - Reference:
+      - Result Types: result-types.md
+      - Simulation Limits: limits.md
+      - Rate Limits: rate-limits.md
+      - Errors: errors.md
+
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details

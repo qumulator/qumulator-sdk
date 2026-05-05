@@ -81,6 +81,67 @@ _MODE_MAP: Dict[str, str] = {
     "greens":      "klt_greens",
 }
 
+# Tier depth limits: (max_n_qubits, max_entangling_depth)
+# These mirror the published tier table. Modes that are unconditionally exact
+# (statevector, cluster, greens, gaussian) are handled separately.
+_TIER_DEPTH_LIMITS: List[Tuple[int, int]] = [
+    (20,   20),   # Tier 1
+    (54,    9),   # Tier 2
+    (105,   8),   # Tier 3
+    (1000,  7),   # Tier 4
+]
+
+# Modes that have no depth restriction (exact or non-MPS)
+_EXACT_MODES = {"exact", "cluster", "greens", "gaussian"}
+# Statevector mode qubit cap
+_STATEVECTOR_MAX_QUBITS = 20
+
+
+def _validate_circuit(
+    n_qubits: int,
+    gates: List[Dict],
+    mode: str,
+) -> Optional[str]:
+    """
+    Check circuit parameters against published tier limits. Pure client-side —
+    no API call. Returns an error message string if invalid, else None.
+    """
+    if mode in _EXACT_MODES:
+        if mode == "exact" and n_qubits > _STATEVECTOR_MAX_QUBITS:
+            return (
+                f"'exact' (statevector) mode supports at most {_STATEVECTOR_MAX_QUBITS} "
+                f"qubits; circuit has {n_qubits}. "
+                f"Consider 'auto', 'compressed', or 'tensor' mode for larger circuits."
+            )
+        return None  # cluster/greens/gaussian have no depth constraint
+
+    # Count entangling layers (gates acting on 2+ qubits)
+    entangling_depth = sum(
+        1 for g in gates if len(g.get("qubits", [])) >= 2
+    )
+
+    max_depth: Optional[int] = None
+    for max_n, max_d in _TIER_DEPTH_LIMITS:
+        if n_qubits <= max_n:
+            max_depth = max_d
+            break
+
+    if max_depth is None:
+        return (
+            f"Circuit has {n_qubits} qubits; maximum supported is 1,000 qubits "
+            f"in MPS modes."
+        )
+
+    if entangling_depth > max_depth:
+        return (
+            f"Circuit has {n_qubits} qubits and {entangling_depth} entangling "
+            f"layer(s); the tier limit for this qubit range is {max_depth}. "
+            f"Reduce entangling depth or use 'cluster' mode (exact for any depth, "
+            f"memory O(Σ 2^k_c))."
+        )
+
+    return None
+
 
 # ---------------------------------------------------------------------------
 #  Result dataclass
@@ -248,6 +309,36 @@ class CircuitEngine:
         self._gates = []
         return self
 
+    def validate(self) -> None:
+        """
+        Check the circuit against published tier depth limits client-side.
+
+        Raises ``ValueError`` with a descriptive message if the circuit
+        exceeds the limit for its qubit count and mode — no API call is made.
+        Does nothing if the circuit is within limits.
+
+        Examples
+        --------
+        ::
+
+            eng = client.circuit.engine(n_qubits=1000, mode="auto")
+            for i in range(0, 1000, 2):
+                eng.apply("h", i).apply("cx", [i, i + 1])
+            eng.validate()   # passes (depth 1, limit 7 for N=1000)
+
+            # Exceeds tier limit:
+            deep_eng = client.circuit.engine(n_qubits=200, mode="auto")
+            for _ in range(10):
+                for i in range(0, 200, 2):
+                    deep_eng.apply("cx", [i, i + 1])
+            deep_eng.validate()
+            # ValueError: Circuit has 200 qubits and 10 entangling layer(s);
+            # the tier limit for this qubit range is 7. ...
+        """
+        error = _validate_circuit(self.n_qubits, self._gates, self.mode)
+        if error:
+            raise ValueError(error)
+
     # -- execution API --------------------------------------------------------
 
     def run(
@@ -257,6 +348,7 @@ class CircuitEngine:
         return_statevector: bool = False,
         return_probabilities: bool = False,
         return_entropy_map: bool = False,
+        dry_run: bool = False,
     ) -> CircuitResult:
         """
         Submit the circuit to the Qumulator service and return results.
@@ -273,11 +365,19 @@ class CircuitEngine:
             Include the probability vector in the response (N <= ~25).
         return_entropy_map : bool
             Include per-qubit entanglement entropies in the response.
+        dry_run : bool
+            If ``True``, validate the circuit against tier depth limits
+            client-side and return without submitting to the API.  Raises
+            ``ValueError`` if the circuit is invalid; returns ``None``
+            if it passes.  Useful for pre-flight checks in loops or notebooks.
 
         Returns
         -------
         CircuitResult
         """
+        self.validate()
+        if dry_run:
+            return None  # type: ignore[return-value]
         return self._client._execute(
             n_qubits=self.n_qubits,
             gates=self._gates,

@@ -4,8 +4,9 @@
 [![PyPI version](https://badge.fury.io/py/qumulator-sdk.svg)](https://pypi.org/project/qumulator-sdk/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-qumulator.github.io-7c6fff.svg)](https://qumulator.github.io/qumulator-sdk/)
 
-> Simulate 1,000-qubit quantum circuits on classical hardware. Exact results. No GPU. No quantum hardware required.
+> Simulate quantum circuits up to 1,000 qubits at low entanglement depth on classical hardware. No GPU. No quantum hardware required.
 
 ---
 
@@ -26,6 +27,28 @@ framework that routes each problem to the most efficient representation — tens
 cluster-exact, Gaussian covariance matrix, nexus graph, or full statevector — based on the
 entanglement structure of the specific circuit. Callers select a mode with a single parameter;
 the engine handles routing automatically.
+
+---
+
+## How Qumulator compares
+
+MPS simulation scales with **entanglement depth**, not qubit count. Statevector simulators
+scale with **qubit count**. These are complementary tools — Qumulator is not a drop-in
+replacement for exact small-circuit simulation; it is the right tool when qubit count is
+large and entanglement depth is bounded.
+
+| Simulator | Max qubits (exact) | Requires GPU | Scales with | Best for |
+|---|---|---|---|---|
+| **Qumulator** | 1,000 (MPS) / 20 (statevector) | No | Entanglement depth | Large structured/variational circuits, VQE, QAOA |
+| Qiskit Aer | ~30 (statevector) | Optional | Qubit count | General small circuits, local use |
+| BlueQubit | 34–36 | Optional | Qubit count | Exact small–mid circuits, GPU-accelerated |
+| PennyLane | ~25 | Optional | Qubit count | Differentiable circuits, VQE, QAOA |
+
+**Rule of thumb:** Qumulator handles the full spectrum — exact statevector up to 20 qubits
+at any depth, MPS up to 1,000 qubits at low entanglement depth, and cluster/Green's modes
+for exact results beyond that. The only narrow range where a multi-GPU statevector server
+has an edge is roughly 20–35 qubits at arbitrary depth; above ~35 qubits, MPS is the only
+practical option on any hardware, and Qumulator runs it on a standard CPU.
 
 ---
 
@@ -138,7 +161,7 @@ print(result.most_probable)
 Run the built-in demo against the live API:
 
 ```bash
-qumulator demo           # 1000-qubit GHZ
+qumulator demo           # 1,000-qubit Bell pairs (depth 1)
 qumulator demo --willow  # 105-qubit Willow-layout RCS
 ```
 
@@ -203,6 +226,8 @@ Pass `mode=` to any `run()` call. The server selects `auto` by default.
 | `hamiltonian` | (operator algebra) | 1,000 | Hamiltonian simulation without gate decomposition |
 | `gaussian` | (covariance matrix) | unlimited | Clifford circuits; returns Wigner negativity certificate |
 | `greens` | (Green's function) | 1,000 | Free-fermion / Gaussian circuits; O(N²) memory, exact 1-RDM |
+
+> ¹ Modes with max 1,000 qubits are subject to the tier depth limit (max 7 entangling layers for N > 105). See the depth limits table above. `exact` mode: 20 qubits, any depth.
 
 ---
 
@@ -298,18 +323,34 @@ unconditionally exact modes (`"exact"`, `"cluster"`).
 
 ---
 
+## Pricing
+
+**1 Compute Unit (CU) = 1 second of engine CPU time.**
+
+A simple 2-qubit Bell circuit uses < 1 CU. A 100-qubit depth-5 MPS circuit uses ~2–5 CU.
+A 1,000-qubit depth-3 circuit uses ~10–20 CU. A 20-qubit exact statevector at depth 20 uses ~9 CU.
+
+| Plan | Price | CU / month | Notes |
+|---|---|---|---|
+| **Free** | $0 | 500 | Public beta. No account. No credit card. |
+| **Starter** | $99/month | 10,000 | API key + usage dashboard |
+| **Professional** | Contact us | 100,000+ | Priority queue, SLA, volume pricing |
+
+Free tier rate limit: 1 request/minute, 100 requests/day.
+Full pricing: [qumulator.com/#pricing](https://qumulator.com/#pricing)
+
+---
+
 ## Free tier limits
 
 | Limit | Value |
 |---|---|
 | Compute Units / month | 500 CU (1 CU = 1 CPU-second of engine time) |
 | Max qubits (statevector mode) | 20 |
-| Max qubits (MPS mode) | 1,000 (all tiers) |
+| Max qubits (MPS mode) | 1,000 — see tier depth limits table |
 | Rate limit | 1 request / minute |
 | Daily limit | 100 requests / day |
-| Free tier availability | Beta only — may be discontinued at any time |
-
-Paid plans start at **$99/month** (10,000 CU). See [qumulator.com/#pricing](https://qumulator.com/#pricing).
+| Free tier availability | Public beta |
 
 ---
 
@@ -353,7 +394,9 @@ Set `QUMULATOR_API_KEY` in your environment, or pass `--key YOUR_KEY`.
 
 ## Documentation
 
-Full API reference and examples: [qumulator.com](https://qumulator.com)
+Full SDK reference: [qumulator.github.io/qumulator-sdk](https://qumulator.github.io/qumulator-sdk/)
+
+Full API reference and website docs: [qumulator.com](https://qumulator.com)
 
 ---
 
