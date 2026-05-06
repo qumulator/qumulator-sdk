@@ -354,6 +354,15 @@ Full pricing: [qumulator.com/#pricing](https://qumulator.com/#pricing)
 
 ---
 
+## Quantum Simulations for Everyday Problems
+
+These notebooks apply quantum computing to problems anyone can relate to — no physics background required:
+
+| Notebook | Description |
+|---|---|
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/options_pricer.ipynb) | **European call option pricer** — quantum amplitude estimation vs Black-Scholes, <1% error |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/fantasy_football.ipynb) | **Fantasy football lineup optimizer** — DraftKings QUBO solved with KLT ground-state engine |
+
 ## Demo notebooks
 
 Click to open in Google Colab — no install required, just add your API key:

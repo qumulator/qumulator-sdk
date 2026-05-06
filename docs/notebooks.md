@@ -50,6 +50,17 @@ else:
 Open any notebook directly in Google Colab — no install required, just add your API key
 in the second cell.
 
+## Quantum Simulations for Everyday Problems
+
+These notebooks apply quantum computing to problems anyone can relate to — no physics background required.
+
+| Notebook | Description |
+|---|---|
+| [European call option pricer](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/options_pricer.ipynb) | Quantum amplitude estimation vs Black-Scholes — <1% error on a 5-qubit circuit |
+| [Fantasy football lineup optimizer](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/fantasy_football.ipynb) | DraftKings salary-cap QUBO solved with the KLT ground-state engine |
+
+## Demo notebooks
+
 | Notebook | Description |
 |---|---|
 | [Willow RCS](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/willow_rcs_benchmark.ipynb) | 105-qubit exact simulation on a Willow-layout SYC grid |

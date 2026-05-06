@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `qumulator.github.io/qumulator-sdk`
 - GitHub Actions workflow (`.github/workflows/docs.yml`) auto-deploys the docs site to
   the `gh-pages` branch on every push to `main` that touches `docs/` or `mkdocs.yml`
+- **`notebooks/options_pricer.ipynb`** — European call option pricer using quantum
+  amplitude estimation on a 5-qubit circuit (4 register + 1 ancilla); prices within
+  <1% of Black-Scholes for ATM calls; includes Greeks sweep and dark-theme visualisation;
+  opens in Google Colab
+- **`notebooks/fantasy_football.ipynb`** — DraftKings daily fantasy football lineup
+  optimizer; encodes the 9-player, $50,000 salary-cap roster selection as a 40-variable
+  QUBO and solves with `client.klt`; includes classical greedy baseline comparison and
+  KLT confidence-score chart; opens in Google Colab
 
 ### Changed
 - README tagline updated: *"Simulate quantum circuits up to 1,000 qubits at low
