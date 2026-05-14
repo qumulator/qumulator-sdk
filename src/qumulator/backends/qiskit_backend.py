@@ -54,6 +54,8 @@ try:
     from qiskit.circuit import QuantumCircuit
     _QISKIT_OK = True
 except ImportError:
+    transpile = None  # type: ignore[assignment]
+    QuantumCircuit = None  # type: ignore[assignment,misc]
     _QISKIT_OK = False
 
 

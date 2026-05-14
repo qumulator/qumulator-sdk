@@ -5,9 +5,87 @@ All notable changes to the Qumulator SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] — 2026-05-14
+
+> **The Qumulator statevector engine is now open-source.**
+> Now you can run the statevector engine locally, with full source code.
+>
+> `LocalStatevectorEngine` ships inside the SDK — no API key, no account, no network
+> connection required. **No qubit limits** — simulate as many qubits as your hardware
+> can hold. GPU acceleration (CuPy / JAX / PyTorch) is auto-detected and zero-config.
+> Install once, run anywhere.
+>
+> ```bash
+> pip install qumulator-sdk          # CPU — unlimited qubits, pure NumPy
+> pip install "qumulator-sdk[gpu]"   # GPU — CuPy / JAX / PyTorch, auto-detected
+> ```
 
 ### Added
+
+- **`LocalStatevectorEngine`** — a complete local statevector simulator shipped as part
+  of `qumulator-sdk`. No API key, no cloud account, no network connection required.
+  Simulates arbitrary quantum circuits up to any qubit count using pure NumPy; optional
+  GPU acceleration via CuPy, JAX, or PyTorch (`pip install qumulator-sdk[gpu]`).
+
+  ```python
+  from qumulator.local import LocalStatevectorEngine
+
+  eng = LocalStatevectorEngine(n_qubits=10)
+  eng.apply('h', 0)
+  for i in range(9):
+      eng.apply('cx', [i, i+1])
+  result = eng.run(shots=4096, return_entropy_map=True)
+  print(result.counts)       # {'0000000000': ~2048, '1111111111': ~2048}
+  print(result.entropy_map)  # [~1.0, ~1.0, ...]  per-qubit entanglement
+  ```
+
+- **Analytic fast paths** — four circuit patterns execute in O(1) time without
+  allocating or evolving a statevector:
+
+  | Pattern | Detection | Output |
+  |---|---|---|
+  | Bell state | `H(0) + CNOT(0,1)` on 2 qubits | 50% `|00⟩`, 50% `|11⟩` |
+  | Bernstein-Vazirani | `H⊗n + oracle + H⊗n` | hidden bitstring *s* with prob 1 |
+  | QFT | H + controlled-phase ladder | uniform over all `2^n` states |
+  | Grover | H init + oracle/diffusion × k | marked state with `sin²((2k+1)θ)` |
+
+- **`entropy_map`** — per-qubit von Neumann entanglement entropy (log-base-2) via
+  reduced density matrix SVD; available via `return_entropy_map=True` on both
+  `LocalStatevectorEngine.run()` and the cloud `CircuitEngine.run()`.
+
+- **`[gpu]` optional dependency group** — `pip install qumulator-sdk[gpu]` installs
+  CuPy (NVIDIA CUDA), JAX (Google XLA), and PyTorch. The engine auto-detects availability
+  in that order and falls back to NumPy silently.
+
+- **`mode='local'` on `CircuitClient.engine()`** — existing cloud clients can opt into
+  local simulation for development / offline use:
+
+  ```python
+  client = QumulatorClient(api_key="...")
+  eng = client.circuit.engine(n_qubits=5, mode="local")
+  eng.apply("h", 0).apply("cx", [0, 1])
+  result = eng.run(shots=1024)
+  ```
+
+- **Large-qubit warning** — `UserWarning` emitted at `n_qubits > 20` with the expected
+  memory footprint; simulation continues normally.
+
+- **25 new unit tests** in `tests/test_local_engine.py` covering: Bell/GHZ states,
+  Bernstein-Vazirani, QFT and Grover fast paths, norm conservation, entropy map (Bell,
+  product state, GHZ), GPU smoke test, parametric gates (Rx, Rz, SWAP, Toffoli).
+- **`client.evolve.aklt(n_sites, observables, string_order_pairs)`** — new `EvolveClient`
+  method for exact AKLT Valence Bond Solid state preparation via `/evolve/aklt`:
+  - Returns `AKLTResult` with `bond_entropy`, `mean_bond_entropy` (≈0.50 bits; inter-site
+    bonds = 1.0 bit, intra-site bonds = 0.0 bit), `max_bond_dim` (=2 exact),
+    `klt_labels` (Z3 on inter-site bonds, Z1 on intra-site), `string_order`
+    map (values = −0.250 = −1/4 for all site pairs), and optional QFI/correlators
+  - Example: `vbs = client.evolve.aklt(n_sites=10, observables=["entropy","string_order"])`
+- **`"aklt"` preset in `client.evolve.run()` and `client.evolve.ground()`**:
+  - `n_qubits` must equal `2 × n_sites`; parameters `J_AF` (default 1.0) and `J_FM` (default 2.0)
+  - **Important**: pass `initial_state="neel"` to `client.evolve.ground()` — the default
+    `|0…0⟩` state is a fixed point of the AKLT propagator and will never converge
+- **`initial_state` parameter on `client.evolve.ground()`** — new optional `str` argument
+  (`"zero"` | `"neel"` | `"ferromagnet"`, default `"zero"`).  Required for AKLT.
 - `CircuitEngine.validate()` — client-side pre-flight check that counts entangling
   layers and compares against the published tier depth limits; raises `ValueError` with
   a descriptive message (qubit count, actual depth, tier limit, recommended alternative)
@@ -29,23 +107,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   optimizer; encodes the 9-player, $50,000 salary-cap roster selection as a 40-variable
   QUBO and solves with `client.klt`; includes classical greedy baseline comparison and
   KLT confidence-score chart; opens in Google Colab
+- **`notebooks/h2_ground_state.ipynb`** — H₂ ground state via 4-qubit exact simulation,
+  CASCI(2,2)/STO-3G, 100% correlation energy recovery; opens in Google Colab
+- **`notebooks/lih_ground_state.ipynb`** — LiH ground state via KLT Pauli-Hamiltonian
+  solver, 1.15 mHa error, chemical accuracy; opens in Google Colab
+- **`notebooks/n2_ground_state.ipynb`** — N₂ ground state via 12-qubit exact simulation,
+  79 kcal/mol correlation recovered (100%), 3.2 s runtime; opens in Google Colab
 
 ### Changed
-- README tagline updated: *"Simulate quantum circuits up to 1,000 qubits at low
-  entanglement depth on classical hardware"* (was "Simulate 1,000-qubit quantum circuits")
-- README: added "How Qumulator compares" section with a four-row competitive table
-  (Qumulator, Qiskit Aer, BlueQubit, PennyLane) and a Rule of thumb paragraph covering
-  Qumulator's full simulation spectrum
-- README: added footnote to the simulation modes table clarifying that MPS modes are
-  subject to the tier depth limit (max 7 entangling layers for N > 105)
-- README: added inline Pricing section with CU definition and plan table (Free / Starter
-  / Professional) so pricing is discoverable from the repo without following an external link
-- README: free tier table updated — "Beta only — may be discontinued at any time" replaced
-  with "Public beta"; "1,000 (all tiers)" clarified to "1,000 — see tier depth limits table"
-- README: CLI demo comment updated from "1000-qubit GHZ" to "1,000-qubit Bell pairs (depth 1)"
-- README: Documentation section now links GitHub Pages (`qumulator.github.io/qumulator-sdk`)
-  as the primary reference alongside the existing `qumulator.com` link
-- README: added `[![Docs]` badge to the header badge row
+
+- `sdk` version bumped to **0.4.0**.
+- `LocalStatevectorEngine` exported from `qumulator` top-level package.
+- **`GaussianCertificate.kaplan_yorke_dim`** renamed to **`spectral_complexity_dim`**;
+  **`GaussianCertificate.koopman_mode_count`** renamed to **`spectral_mode_count`**. The
+  experimental Kaplan-Yorke and Koopman-mode fields have been replaced with neutral spectral
+  complexity equivalents. Values and semantics are unchanged — only the field names differ.
+- README tagline updated to reflect unlimited local simulation and cloud MPS up to 1,000 qubits
+- README: added "How Qumulator compares" competitive table and Rule of thumb paragraph
+- README: added inline Pricing section; free-tier table and CLI demo comment updated
+- README: Documentation section links GitHub Pages as primary reference; `[![Docs]` badge added
+
+### Removed
+
+- Experimental Z1–Z5 correction layers removed from the KLT simulation engine. Phase labels
+  (Z1–Z5) are still returned as entanglement analysis fields in every result; the correction
+  calls themselves were speculative and could degrade accuracy. No changes to the SDK API or
+  response models.
 
 ---
 
@@ -60,9 +147,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CircuitResult.f_Q_density` — Quantum Fisher Information density (Tóth–Gühne 2012)
   certifying genuine multipartite entanglement; `f_Q > k` certifies (k+1)-partite entanglement
 - `CircuitResult.entanglement_depth` — certified entanglement depth `floor(f_Q_density)`
-- `CircuitResult.predicted_tvd` — model-calibrated total variation distance bound per KLT
-  chaos phase; `0.0` for unconditionally exact modes (`'exact'`, `'cluster'`)
-- `CircuitResult.phase_label` — KLT chaos-regime label (`Z1`–`Z5`) returned from the engine
+- `CircuitResult.predicted_tvd` — model-calibrated total variation distance bound per
+  entanglement phase; `0.0` for unconditionally exact modes (`'exact'`, `'cluster'`)
+- `CircuitResult.phase_label` — KLT entanglement-phase label (`Z1`–`Z5`) returned from the engine
 - Colab demo notebooks: `klt_cluster_demo`, `klt_greens_demo`, `tebd_quench_demo`,
   `chsh_bell`, `h12_vqe`, `prime_factoring`, `vortex_geometry`
 
@@ -123,8 +210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Circuit execution modes: `'auto'`, `'exact'`, `'compressed'`, `'tensor'`,
   `'hamiltonian'`, `'gaussian'`
 - `GaussianCertificate` model classifying circuits as `GAUSSIAN_SIMULABLE`,
-  `LIKELY_GAUSSIAN`, or `NON_GAUSSIAN_CORRECTION_NEEDED`, with Kaplan-Yorke dimension
-  and Koopman mode count fields
+  `LIKELY_GAUSSIAN`, or `NON_GAUSSIAN_CORRECTION_NEEDED`, with spectral complexity
+  metric fields
 - Qiskit drop-in backend (`qumulator-sdk[qiskit]`) and Cirq simulator (`qumulator-sdk[cirq]`)
 - CLI: `qumulator demo` (50-qubit Bell, 105-qubit Willow, wormhole, anyon braiding demos),
   `qumulator key` (prints key-generation instructions)

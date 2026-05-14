@@ -1,7 +1,28 @@
 # Qumulator — API & SDK Reference
 
+!!! success "The Qumulator statevector engine is now open-source"
+    `LocalStatevectorEngine` ships inside the SDK — **no qubit limits**, no API key,
+    no account, no network required. Now you can run the statevector engine locally,
+    with full source code. The only ceiling is your own hardware.
+    GPU acceleration (CuPy / JAX / PyTorch) is auto-detected at runtime.
+
+    ```bash
+    pip install qumulator-sdk          # CPU — unlimited qubits
+    pip install "qumulator-sdk[gpu]"   # GPU — CuPy / JAX / PyTorch
+    ```
+
+    ```python
+    from qumulator.local import LocalStatevectorEngine
+
+    eng = LocalStatevectorEngine(n_qubits=28)   # no hard cap — use what your hardware has
+    eng.apply('h', 0)
+    for i in range(27):
+        eng.apply('cx', [i, i + 1])
+    result = eng.run(shots=4096, return_entropy_map=True)
+    ```
+
 Everything you need to run quantum circuits, spin systems, photonic amplitudes, and
-molecular orbitals on classical hardware. No GPU. No quantum computer required.
+molecular orbitals on classical hardware. GPU optional. No quantum computer required.
 
 ---
 

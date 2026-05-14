@@ -1,5 +1,28 @@
 # Installation
 
+## Local statevector engine (open-source, no account required)
+
+The Qumulator statevector engine ships inside the SDK — now available with full source
+code. Run it locally with no API key, no account, and no network connection required.
+**No qubit limits** — simulate as many qubits as your hardware supports.
+
+```bash
+pip install qumulator-sdk          # CPU — unlimited qubits, pure NumPy
+pip install "qumulator-sdk[gpu]"   # + GPU acceleration (CuPy / JAX / PyTorch)
+```
+
+GPU backends are auto-detected at import time in this order: CuPy (NVIDIA CUDA),
+JAX (Google XLA), PyTorch. If none are available the engine silently falls back to NumPy.
+
+```python
+from qumulator.local import LocalStatevectorEngine
+
+eng = LocalStatevectorEngine(n_qubits=28)          # CPU
+eng = LocalStatevectorEngine(n_qubits=28, device='gpu')  # GPU
+```
+
+## Cloud API client
+
 ```bash
 pip install qumulator-sdk
 ```

@@ -6,7 +6,38 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-qumulator.github.io-7c6fff.svg)](https://qumulator.github.io/qumulator-sdk/)
 
-> Simulate quantum circuits up to 1,000 qubits at low entanglement depth on classical hardware. No GPU. No quantum hardware required.
+> Simulate quantum circuits up to 1,000 qubits in the cloud — or **unlimited qubits locally**, GPU-accelerated, with no account required.
+
+---
+
+## The Qumulator statevector engine is now open-source
+
+As of v0.4.0 the full statevector simulation core ships inside `qumulator-sdk` as
+`LocalStatevectorEngine`. Now you can run the statevector engine locally, with full source
+code. **No qubit limits** — the only ceiling is your own hardware. GPU acceleration (CuPy / JAX / PyTorch) is auto-detected at runtime with zero
+configuration. No API key. No account. No network.
+
+```bash
+pip install qumulator-sdk          # CPU — unlimited qubits, pure NumPy
+pip install "qumulator-sdk[gpu]"   # GPU — CuPy / JAX / PyTorch, auto-detected
+```
+
+```python
+from qumulator.local import LocalStatevectorEngine
+
+# Runs locally — as many qubits as your hardware supports
+eng = LocalStatevectorEngine(n_qubits=28)   # or 30, or 35 — no hard cap
+eng.apply('h', 0)
+for i in range(27):
+    eng.apply('cx', [i, i + 1])
+
+result = eng.run(shots=4096, return_entropy_map=True)
+print(result.counts)       # GHZ measurement results
+print(result.entropy_map)  # per-qubit entanglement entropy
+```
+
+For circuits beyond your local RAM at high entanglement, the cloud API routes to
+MPS / tensor-network / cluster backends that scale to 1,000 qubits on a standard CPU.
 
 ---
 
@@ -39,16 +70,12 @@ large and entanglement depth is bounded.
 
 | Simulator | Max qubits (exact) | Requires GPU | Scales with | Best for |
 |---|---|---|---|---|
-| **Qumulator** | 1,000 (MPS) / 20 (statevector) | No | Entanglement depth | Large structured/variational circuits, VQE, QAOA |
+| **Qumulator** | Unlimited (local) / 1,000 (cloud MPS) / 20 (cloud statevector) | Optional (local) | Entanglement depth | Large structured/variational circuits, VQE, QAOA |
 | Qiskit Aer | ~30 (statevector) | Optional | Qubit count | General small circuits, local use |
 | BlueQubit | 34–36 | Optional | Qubit count | Exact small–mid circuits, GPU-accelerated |
 | PennyLane | ~25 | Optional | Qubit count | Differentiable circuits, VQE, QAOA |
 
-**Rule of thumb:** Qumulator handles the full spectrum — exact statevector up to 20 qubits
-at any depth, MPS up to 1,000 qubits at low entanglement depth, and cluster/Green's modes
-for exact results beyond that. The only narrow range where a multi-GPU statevector server
-has an edge is roughly 20–35 qubits at arbitrary depth; above ~35 qubits, MPS is the only
-practical option on any hardware, and Qumulator runs it on a standard CPU.
+**Rule of thumb:** Qumulator handles the full spectrum — unlimited statevector locally (bounded only by your RAM/GPU), exact statevector up to 20 qubits via the cloud API, MPS up to 1,000 qubits at low entanglement depth, and cluster/Green's modes for exact results beyond that. The only narrow range where a multi-GPU statevector server has an edge is roughly 20–35 qubits at arbitrary depth; above ~35 qubits, MPS is the only practical option on any hardware, and Qumulator runs it on a standard CPU.
 
 ---
 
@@ -318,7 +345,7 @@ from the ZZ correlator matrix — an established, independently verifiable quant
 - `entanglement_depth = floor(f_Q_density)`
 
 `predicted_tvd` is a model-based upper bound on the total variation distance to the
-exact distribution, calibrated per KLT chaos phase (Z1–Z5). It is `0.0` for
+exact distribution, calibrated per KLT entanglement phase (Z1–Z5). It is `0.0` for
 unconditionally exact modes (`"exact"`, `"cluster"`).
 
 ---
@@ -381,6 +408,14 @@ Click to open in Google Colab — no install required, just add your API key:
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/chsh_bell.ipynb) | **CHSH Bell inequality** — Bell state + CHSH correlator, S=2√2 Tsirelson bound |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h12_vqe.ipynb) | **H₁₂ chain ground state** — 12-site Ising chain solved with KLT solver |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/vortex_geometry.ipynb) | **Vortex geometry** — entanglement growth in random H/CX/Rz brickwork circuits |
+
+## Quantum Chemistry
+
+| | |
+|---|---|
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h2_ground_state.ipynb) | **H₂ ground state** — 4-qubit exact simulation, CASCI(2,2)/STO-3G, 100% correlation recovery |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/lih_ground_state.ipynb) | **LiH ground state** — KLT Pauli-Hamiltonian solver, 1.15 mHa error, chemical accuracy |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/n2_ground_state.ipynb) | **N₂ ground state** — 12-qubit exact simulation, 79 kcal/mol correlation recovered, 100% |
 
 ---
 

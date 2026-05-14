@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from qumulator._http import _BaseClient, QumulatorHTTPError
 from qumulator.models import (
+    AKLTResult,
     EvolveResult,
     GroundStateResult,
     HafnianResult,
@@ -430,6 +431,7 @@ class EvolveClient(_BaseClient):
         n_steps: int = 200,
         converge_tol: float = 1e-6,
         bond_dim: int = 64,
+        initial_state: str = "zero",
         timeout: float = 300.0,
     ) -> GroundStateResult:
         """
@@ -456,6 +458,7 @@ class EvolveClient(_BaseClient):
             n_steps=n_steps,
             converge_tol=converge_tol,
             bond_dim=bond_dim,
+            initial_state=initial_state,
             timeout_seconds=timeout,
         )
         data = self._post_timeout("/evolve/ground", body, timeout=timeout + 10.0)
@@ -587,6 +590,81 @@ class EvolveClient(_BaseClient):
         )
         data = self._post_timeout("/evolve/lattice", body, timeout=timeout + 10.0)
         return LatticeResult(**data)
+
+    # ── AKLT Valence Bond Solid ───────────────────────────────────────────
+
+    def aklt(
+        self,
+        n_sites: int,
+        observables: list[str] | None = None,
+        string_order_pairs: list[list[int]] | None = None,
+        timeout: float = 60.0,
+    ) -> AKLTResult:
+        """
+        Prepare the exact AKLT Valence Bond Solid (VBS) ground state.
+
+        Constructs the AKLT ground state for a spin-1 chain in O(N) time via
+        a depth-O(1) circuit — no TEBD iteration required.  Each spin-1 site
+        is encoded in 2 qubits (total qubits = 2 × n_sites).
+
+        The AKLT VBS is the prototypical symmetry-protected topological (SPT)
+        state: it has hidden Z₂×Z₂ order (Haldane phase), protected edge modes,
+        exactly χ=2 MPS structure, and is a universal MBQC resource state.
+
+        Parameters
+        ----------
+        n_sites : int
+            Number of spin-1 sites (≥ 2).  Total qubits = 2 × n_sites.
+        observables : list[str], optional
+            Any subset of: ``"entropy"``, ``"string_order"``, ``"qfi"``,
+            ``"magnetization"``, ``"correlators"``.
+            Default: ``["entropy", "string_order"]``.
+        string_order_pairs : list[[int, int]], optional
+            Site pairs for string order evaluation.
+            Default: ``[[0, n_sites − 1]]`` (full-chain string order).
+        timeout : float
+            Request timeout in seconds (default 60.0 — VBS prep is fast).
+
+        Returns
+        -------
+        AKLTResult
+            - ``max_bond_dim``:      2 (always, for exact VBS)
+            - ``bond_entropy``:      all ≈ 1.000 bit
+            - ``mean_bond_entropy``: ≈ 1.000 bit
+            - ``klt_labels``:        all ``"Z3"`` (cluster-entangled regime)
+            - ``string_order``:      e.g. ``{"O_string(0,9)": -0.4444}``
+
+        Examples
+        --------
+        ::
+
+            # Basic VBS state — 10 spin-1 sites (20 qubits)
+            vbs = client.evolve.aklt(n_sites=10)
+            print(vbs.max_bond_dim)         # 2
+            print(vbs.mean_bond_entropy)    # ≈ 1.0
+            print(vbs.string_order)         # {"O_string(0,9)": -0.4444}
+
+            # Full observable set
+            vbs = client.evolve.aklt(
+                n_sites=20,
+                observables=["entropy", "string_order", "qfi"],
+                string_order_pairs=[[0, 19], [1, 18], [5, 14]],
+            )
+
+        References
+        ----------
+        Affleck, Kennedy, Lieb, Tasaki (1987) PRL 59, 799.
+        """
+        if observables is None:
+            observables = ["entropy", "string_order"]
+        body: dict = dict(
+            n_sites=n_sites,
+            observables=observables,
+        )
+        if string_order_pairs is not None:
+            body["string_order_pairs"] = string_order_pairs
+        data = self._post_timeout("/evolve/aklt", body, timeout=timeout + 10.0)
+        return AKLTResult(**data)
 
     # ── Internal helper ───────────────────────────────────────────────────
 

@@ -33,6 +33,7 @@ nav:
   - Python SDK:
       - Installation: install.md
       - Circuit Simulation: circuit.md
+      - Cost Estimator: cost-estimator.md
       - OpenQASM Input: qasm.md
       - Simulation Modes: modes.md
       - Time Evolution (TEBD): evolve.md

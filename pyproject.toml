@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qumulator-sdk"
-version = "0.3.0"
+version = "0.4.0"
 description = "Python client SDK for the Qumulator quantum computing API"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,9 +15,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-asyncio", "respx", "httpx"]
+local = []
 qiskit = ["qiskit>=1.0"]
 cirq = ["cirq>=1.0"]
-all = ["qiskit>=1.0", "cirq>=1.0"]
+gpu = ["cupy-cuda12x>=13.0", "jax[cuda12]>=0.4", "torch>=2.3"]
+all = ["qiskit>=1.0", "cirq>=1.0", "cupy-cuda12x>=13.0", "jax[cuda12]>=0.4", "torch>=2.3"]
 
 [project.scripts]
 qumulator = "qumulator._cli:main"

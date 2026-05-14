@@ -98,14 +98,14 @@ class GaussianCertificate(BaseModel):
     xeb_lower_bound: Optional[float] = None
     """Cross-entropy benchmark lower bound."""
 
-    kaplan_yorke_dim: Optional[float] = None
-    """Kaplan-Yorke dimension of the entanglement structure (0–3)."""
+    spectral_complexity_dim: Optional[float] = None
+    """Spectral complexity dimension of the entanglement structure (0–3)."""
 
-    koopman_mode_count: Optional[int] = None
-    """Number of independent modes sufficient to represent the entanglement structure."""
+    spectral_mode_count: Optional[int] = None
+    """Number of independent spectral modes sufficient to represent the entanglement structure."""
 
     compression_ratio: Optional[float] = None
-    """``koopman_mode_count / n_qubits`` — fraction of modes active."""
+    """``spectral_mode_count / n_qubits`` — fraction of modes active."""
 
 
 # ── Time Evolution / TEBD ─────────────────────────────────────────────────────
@@ -264,3 +264,50 @@ class LatticeResult(BaseModel):
     bond_entropy:    list[float]
     bond_entropy_2d: list[list[float]]
     max_bond_dim:    int
+
+
+class AKLTResult(BaseModel):
+    """
+    Result of an AKLT Valence Bond Solid state preparation (``/evolve/aklt``).
+
+    The AKLT model (Affleck-Kennedy-Lieb-Tasaki, 1987) is a spin-1 chain with an
+    exactly-known ground state.  This endpoint prepares the state in O(N) time via
+    a depth-O(1) circuit — no TEBD iteration needed.
+
+    Attributes
+    ----------
+    n_sites : int
+        Number of spin-1 sites.
+    n_qubits : int
+        Total qubits = 2 × n_sites.
+    max_bond_dim : int
+        MPS bond dimension χ.  Always 2 for the exact AKLT VBS.
+    bond_entropy : list[float]
+        Per-bond von Neumann entropy (n_qubits − 1 values).  All bonds should
+        be ≈ 1.0 bit exactly (one singlet = one ebit per virtual bond).
+    mean_bond_entropy : float
+        Mean over all bonds.  Should be ≈ 1.0 bit for the AKLT state.
+    klt_labels : list[str]
+        KLT entanglement-phase label per bond.  All bonds should be ``"Z3"``
+        (entropy in [0.6, 1.2) bits) for the AKLT VBS.
+    string_order : dict[str, float] or None
+        Hidden Z₂×Z₂ string order parameter O_string(i, j) for each requested
+        site pair.  Format: ``{"O_string(0,9)": -0.4444, ...}``.
+        Expected limit: −4/9 ≈ −0.444 for the Haldane phase.
+    qfi : float or None
+        Quantum Fisher Information density.  > 1.0 certifies multipartite entanglement.
+    magnetization : list[float] or None
+        Single-qubit ⟨σᶻ⟩ per qubit (should be near 0 for the VBS).
+    correlators : list[float] or None
+        ZZ two-point correlators from the first qubit.
+    """
+    n_sites:           int
+    n_qubits:          int
+    max_bond_dim:      int
+    bond_entropy:      list[float]
+    mean_bond_entropy: float
+    klt_labels:        list[str]
+    string_order:      Optional[dict[str, float]] = None
+    qfi:               Optional[float]            = None
+    magnetization:     Optional[list[float]]      = None
+    correlators:       Optional[list[float]]      = None

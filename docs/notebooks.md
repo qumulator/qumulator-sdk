@@ -75,3 +75,11 @@ These notebooks apply quantum computing to problems anyone can relate to — no 
 | [CHSH Bell inequality](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/chsh_bell.ipynb) | Bell state + CHSH correlator, S=2√2 Tsirelson bound |
 | [H₁₂ chain ground state](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h12_vqe.ipynb) | 12-site Ising chain solved with KLT solver — `client.klt` |
 | [Vortex geometry](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/vortex_geometry.ipynb) | Entanglement growth in random H/CX/Rz brickwork circuits |
+
+## Quantum Chemistry
+
+| Notebook | Description |
+|---|---|
+| [H₂ ground state](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h2_ground_state.ipynb) | 4-qubit exact simulation — CASCI(2,2)/STO-3G, 100% correlation recovery |
+| [LiH ground state](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/lih_ground_state.ipynb) | KLT Pauli-Hamiltonian solver — 1.15 mHa error, chemical accuracy — `client.klt` |
+| [N₂ ground state](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/n2_ground_state.ipynb) | 12-qubit exact simulation — 79 kcal/mol correlation recovered, 100%, 3.2 s |

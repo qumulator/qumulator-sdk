@@ -57,6 +57,7 @@ try:
     import cirq
     _CIRQ_OK = True
 except ImportError:
+    cirq = None  # type: ignore[assignment]
     _CIRQ_OK = False
 
 
@@ -88,12 +89,15 @@ class _QumulatorStateVectorResult:
 
     @property
     def n_qubits(self) -> int:
+        assert self.final_state_vector is not None
         return int(np.log2(len(self.final_state_vector)))
 
     def probabilities(self) -> np.ndarray:
+        assert self.final_state_vector is not None
         return np.abs(self.final_state_vector) ** 2
 
     def dirac_notation(self, decimals: int = 3) -> str:
+        assert self.final_state_vector is not None
         n = self.n_qubits
         terms = []
         for idx, amp in enumerate(self.final_state_vector):

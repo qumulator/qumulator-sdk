@@ -64,7 +64,9 @@ Usage
 
 from qumulator._http import QumulatorHTTPError
 from qumulator.circuit import CircuitClient, CircuitEngine, CircuitResult
+from qumulator.local import LocalStatevectorEngine
 from qumulator.models import (
+    AKLTResult,
     EvolveResult,
     GaussianCertificate,
     GroundStateResult,
@@ -136,6 +138,8 @@ __all__ = [
     "CircuitClient",
     "CircuitEngine",
     "CircuitResult",
+    # Local simulator (no API key required)
+    "LocalStatevectorEngine",
     # Sub-clients
     "HomoClient",
     "KLTClient",
@@ -155,6 +159,7 @@ __all__ = [
     "GroundStateResult",
     "QKZMResult",
     "LatticeResult",
+    "AKLTResult",
     # Errors
     "QumulatorHTTPError",
 ]
