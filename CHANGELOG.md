@@ -5,6 +5,24 @@ All notable changes to the Qumulator SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] — 2026-05-14
+
+### Fixed
+
+- **`notebooks/h2_ground_state.ipynb`** — Removed hardcoded WSL engine path
+  (`/mnt/c/Projects/qumulator/engine/engines`); added `QUMULATOR_API_KEY` /
+  `QumulatorClient` setup cell; embedded verified JW Pauli Hamiltonian (15 terms, 4
+  qubits); corrected STO-3G reference energies to pyscf values (HF: −1.1168 Ha,
+  FCI: −1.1373 Ha); added `client.klt.run()` cloud fallback so the notebook runs
+  without a local engine.
+- **`notebooks/n2_ground_state.ipynb`** — Same set of fixes as H₂: removed WSL path,
+  added API key + client setup, embedded N₂ JW Pauli Hamiltonian (383 terms, 12
+  qubits), added `client.klt.run()` cloud fallback.
+- **`notebooks/willow_rcs_benchmark.ipynb`** — Cleared stale cell outputs from a
+  partial test run (cells contained a saved HTTP 500 error).
+
+---
+
 ## [0.4.0] — 2026-05-14
 
 > **The Qumulator statevector engine is now open-source.**
