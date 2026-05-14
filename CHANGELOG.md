@@ -5,6 +5,18 @@ All notable changes to the Qumulator SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] — 2026-05-14
+
+### Fixed
+
+- **`src/qumulator/resources.py` (`NotebookClient.submit`)** — Fixed broken notebook
+  submission: was sending raw bytes with `Content-Type: application/octet-stream`,
+  but the backend requires `multipart/form-data` with the file in a `notebook` field.
+  All calls to `client.notebook.run()` / `client.notebook.submit()` returned HTTP 422
+  `Field required` before this fix.
+
+---
+
 ## [0.4.1] — 2026-05-14
 
 ### Fixed

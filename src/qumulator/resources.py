@@ -209,8 +209,7 @@ class NotebookClient(_BaseClient):
         ) as client:
             resp = client.post(
                 "/notebooks",
-                content=notebook_bytes,
-                headers={"Content-Type": "application/octet-stream"},
+                files={"notebook": ("notebook.ipynb", notebook_bytes, "application/octet-stream")},
             )
             self._raise_for_status(resp)
             return resp.json()["job_id"]
