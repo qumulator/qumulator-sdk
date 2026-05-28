@@ -5,6 +5,22 @@ All notable changes to the Qumulator SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-05-28
+
+### Fixed
+
+- **`notebooks/dmrg_quickstart.ipynb`** — Corrected the H₂O larger-active-space
+  example: `CAS(7,7)` with `ncas=7, nelecas=(4,3)` was invalid (PySCF computes a
+  non-integer `ncore` and aborts); replaced with `CAS(4,6)`: `ncas=4,
+  nelecas=(3,3)`, `n_elec=[3, 3]`. Also replaced the hardcoded
+  `ao2mo.restore(..., 7)` with `ao2mo.restore(..., mc2.ncas)` for correctness.
+- **`notebooks/molecular_gmps_quickstart.ipynb`** — Fixed Givens gate format in the
+  circuit example: `{"type": "givens", "i": 0, "j": 1, "theta": 0.3}` →
+  `{"qi": 0, "qj": 1, "theta": 0.3}` to match the `GivensGate` backend model
+  (old format caused HTTP 422).
+
+---
+
 ## [0.5.0] — 2026-05-20
 
 ### Added
