@@ -41,7 +41,9 @@ nav:
       - Cirq Integration: cirq.md
       - Spin Ground States: spin.md
       - Photonic Amplitudes: photonics.md
-      - Molecular Orbitals: molecular.md
+      - Molecular Orbitals (HOMO/LUMO): molecular.md
+      - Molecular Energy (GMPS/MPO): molecular-gmps.md
+      - DMRG Ground-State Energy: dmrg.md
       - Notebooks: notebooks.md
   - REST API:
       - API Keys: rest-keys.md

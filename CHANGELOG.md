@@ -5,6 +5,40 @@ All notable changes to the Qumulator SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-05-20
+
+### Added
+
+- **`MolecularClient` (`client.molecular`)** — SDK client for exact molecular
+  active-space energy via GMPS/MPO (Geometric MPS with Matrix Product Operators).
+  Accepts 1e/2e integrals and an optional Givens orbital-rotation circuit; supports
+  up to 50 active orbitals (100 spin-orbital qubits).
+  - `client.molecular.energy(h1e, h2e, n_elec, e_nuc, circuit=None, coup_thr=1e-6)`
+  - Returns `MolecularEnergyResult(energy, n_qubits, n_orb, n_components, zz_correlators)`
+  - Multi-fragment drug molecules (e.g. aspirin 4+5-orbital system) achieve up to
+    7282× memory compression vs. the full statevector.
+
+- **`DMRGClient` (`client.dmrg`)** — SDK client for two-site DMRG ground-state energy.
+  No circuit ansatz required; variational sweeps with configurable bond dimension.
+  - `client.dmrg.energy(h1e, h2e, n_elec, e_nuc, d_max=64, n_sweeps=8, tol=1e-10)`
+  - Returns `DMRGEnergyResult(energy, converged, n_sweeps_run, d_max_used, n_orb, n_so, wall_time_s)`
+  - H₂ CAS(2,2) exact at `d_max=64` (energy = −1.13728383 Ha); see `dmrg_quickstart.ipynb`.
+
+- **`MolecularEnergyResult` model** — Pydantic v2 response model with `energy`,
+  `n_qubits`, `n_orb`, `n_components`, and optional `zz_correlators`.
+
+- **`DMRGEnergyResult` model** — Pydantic v2 response model with `energy`, `converged`,
+  `n_sweeps_run`, `d_max_used`, `n_orb`, `n_so`, `wall_time_s`.
+
+- **`QumulatorClient.molecular`** and **`QumulatorClient.dmrg`** — new attributes on the
+  top-level client exposing `MolecularClient` and `DMRGClient` respectively.
+
+- **SDK unit tests** — `tests/test_molecular_gmps.py` (13 tests) and `tests/test_dmrg.py`
+  (13 tests) covering payload serialisation, response deserialisation, and HTTP error
+  propagation.  Full suite: 98 tests, 0 failures.
+
+---
+
 ## [0.4.2] — 2026-05-14
 
 ### Fixed

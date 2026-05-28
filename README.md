@@ -71,6 +71,8 @@ large and entanglement depth is bounded.
 | Simulator | Max qubits (exact) | Requires GPU | Scales with | Best for |
 |---|---|---|---|---|
 | **Qumulator** | Unlimited (local) / 1,000 (cloud MPS) / 20 (cloud statevector) | Optional (local) | Entanglement depth | Large structured/variational circuits, VQE, QAOA |
+| **Qumulator DMRG** | 30 active orbitals | No | Active-space size | Exact molecular ground states (FCI-quality) |
+| **Qumulator GMPS/MPO** | 50 active orbitals | No | Fragment count | Multi-fragment pharma molecules |
 | Qiskit Aer | ~30 (statevector) | Optional | Qubit count | General small circuits, local use |
 | BlueQubit | 34–36 | Optional | Qubit count | Exact small–mid circuits, GPU-accelerated |
 | PennyLane | ~25 | Optional | Qubit count | Differentiable circuits, VQE, QAOA |
@@ -98,6 +100,8 @@ statevector simulation to double-precision floating point (< 10⁻¹⁴ L² erro
 | Kitaev chain BdG | L=1000 sites | W=−1, gap=2.000 | analytic (exact) | **< 10⁻¹²** | 0.84 s |
 | QUBO dense optimisation | N=100 | matches SA optimum | simulated annealing | 0% | ~3 s |
 | Kuramoto BEC (large-scale) | N=500 oscillators, 2 MB | r=0.114 (Mott-like) | statevector: 2⁵⁰⁰ bytes (impossible) | — | 3.22 s |
+| H₂ DMRG ground state | CAS(2,2) STO-3G, d_max=64 | −1.13728383 Ha | FCI exact | **< 10⁻¹⁰ Ha** | < 1 s |
+| N₂ GMPS/MPO | CAS(10,8) STO-6G | −107.6218 Ha | FCI exact | **< 1 mHa** | ~5 s |
 
 ### Circuit depth limits (approximation modes)
 
@@ -317,7 +321,76 @@ Custom Pauli-sum terms are also supported via `hamiltonian={"terms": [...]}`.
 
 ---
 
-## Entanglement diagnostics
+## Molecular simulation — GMPS/MPO and DMRG
+
+Compute the ground-state energy of a molecular active space from 1e/2e integrals.
+Two methods are available: **GMPS/MPO** (up to 50 orbitals, with optional Givens circuit)
+and **DMRG** (up to 30 orbitals, purely variational — no circuit needed).
+
+### GMPS/MPO — `client.molecular`
+
+```python
+from pyscf import gto, scf, mcscf, ao2mo
+from qumulator import QumulatorClient
+
+client = QumulatorClient()
+
+# H2 CAS(2,2) STO-3G
+mol = gto.M(atom="H 0 0 0; H 0 0 0.74", basis="sto-3g", spin=0, charge=0)
+mf  = scf.RHF(mol).run()
+mc  = mcscf.CASSCF(mf, ncas=2, nelecas=2).run()
+
+h1e, e_core = mc.get_h1eff()
+h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
+e_nuc = mc.energy_nuc() + e_core
+
+# Hartree-Fock reference (no circuit)
+result = client.molecular.energy(
+    h1e=h1e.tolist(),
+    h2e=h2e.tolist(),
+    n_elec=list(mc.nelecas),
+    e_nuc=float(e_nuc),
+)
+print(f"E(HF)   = {result.energy:.8f} Ha")   # −1.11734 Ha
+
+# With Givens orbital-rotation circuit (includes correlation)
+result = client.molecular.energy(
+    h1e=h1e.tolist(), h2e=h2e.tolist(),
+    n_elec=list(mc.nelecas), e_nuc=float(e_nuc),
+    circuit=[{"qi": 0, "qj": 2, "theta": 0.15},
+             {"qi": 1, "qj": 3, "theta": 0.15}],
+)
+print(f"E(GMPS) = {result.energy:.8f} Ha")   # towards −1.13728 Ha
+```
+
+### DMRG — `client.dmrg`
+
+```python
+# H2 CAS(2,2) — exact at d_max=64 (machine precision FCI)
+result = client.dmrg.energy(
+    h1e=h1e.tolist(),
+    h2e=h2e.tolist(),
+    n_elec=list(mc.nelecas),
+    e_nuc=float(e_nuc),
+    d_max=64,         # bond dimension
+    n_sweeps=8,       # max DMRG sweeps
+)
+print(f"E(DMRG) = {result.energy:.10f} Ha")   # −1.1372838 Ha (exact FCI)
+print(f"converged={result.converged}, t={result.wall_time_s:.2f} s")
+```
+
+**Choosing the right method:**
+
+| | DMRG | GMPS/MPO |
+|---|---|---|
+| Active space | ≤ 30 orb | ≤ 50 orb |
+| Requires circuit | No | Optional |
+| Accuracy control | d_max + sweeps | MPO bond dim |
+| Best for | 1D-like, exact FCI | Multi-fragment, pharma |
+
+---
+
+
 
 Every circuit result returns a full diagnostics payload — no extra call needed.
 
@@ -416,6 +489,8 @@ Click to open in Google Colab — no install required, just add your API key:
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h2_ground_state.ipynb) | **H₂ ground state** — 4-qubit exact simulation, CASCI(2,2)/STO-3G, 100% correlation recovery |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/lih_ground_state.ipynb) | **LiH ground state** — KLT Pauli-Hamiltonian solver, 1.15 mHa error, chemical accuracy |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/n2_ground_state.ipynb) | **N₂ ground state** — 12-qubit exact simulation, 79 kcal/mol correlation recovered, 100% |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/molecular_gmps_quickstart.ipynb) | **GMPS/MPO quickstart** — molecular ground-state energy from PySCF CAS integrals; `client.molecular` |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/dmrg_quickstart.ipynb) | **DMRG quickstart** — exact FCI via two-site DMRG sweeps; `client.dmrg`; H₂ → −1.13728383 Ha |
 
 ---
 

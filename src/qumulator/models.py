@@ -311,3 +311,62 @@ class AKLTResult(BaseModel):
     qfi:               Optional[float]            = None
     magnetization:     Optional[list[float]]      = None
     correlators:       Optional[list[float]]      = None
+
+
+# ── Molecular GMPS / MPO ──────────────────────────────────────────────────────
+
+class MolecularEnergyResult(BaseModel):
+    """
+    Result of a molecular active-space energy calculation via GMPS/MPO.
+
+    Attributes
+    ----------
+    energy : float
+        Total electronic energy including nuclear repulsion (Ha).
+    n_qubits : int
+        Number of spin-orbital qubits (= 2 × n_orb).
+    n_orb : int
+        Number of active molecular orbitals.
+    n_components : int
+        Number of GMPS fragment components discovered.
+    zz_correlators : list[list[float]] or None
+        ⟨ZᵢZⱼ⟩ correlator matrix (n_qubits × n_qubits).
+        None if not computed.
+    """
+    energy:         float
+    n_qubits:       int
+    n_orb:          int
+    n_components:   int
+    zz_correlators: Optional[list[list[float]]] = None
+
+
+# ── DMRG ─────────────────────────────────────────────────────────────────────
+
+class DMRGEnergyResult(BaseModel):
+    """
+    Result of a two-site DMRG ground-state energy calculation.
+
+    Attributes
+    ----------
+    energy : float
+        Total ground-state energy including nuclear repulsion (Ha).
+    converged : bool
+        True when |ΔE| < tol was satisfied before exhausting n_sweeps.
+    n_sweeps_run : int
+        Number of sweeps actually performed.
+    d_max_used : int
+        Bond dimension as requested (actual max bond dim may be lower for small systems).
+    n_orb : int
+        Number of active molecular orbitals.
+    n_so : int
+        Number of spin-orbitals (= 2 × n_orb).
+    wall_time_s : float
+        Wall-clock time in seconds.
+    """
+    energy:       float
+    converged:    bool
+    n_sweeps_run: int
+    d_max_used:   int
+    n_orb:        int
+    n_so:         int
+    wall_time_s:  float

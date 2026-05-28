@@ -67,6 +67,7 @@ from qumulator.circuit import CircuitClient, CircuitEngine, CircuitResult
 from qumulator.local import LocalStatevectorEngine
 from qumulator.models import (
     AKLTResult,
+    DMRGEnergyResult,
     EvolveResult,
     GaussianCertificate,
     GroundStateResult,
@@ -77,13 +78,16 @@ from qumulator.models import (
     JobStatus,
     KLTResult,
     LatticeResult,
+    MolecularEnergyResult,
     QKZMResult,
 )
 from qumulator.resources import (
+    DMRGClient,
     EvolveClient,
     HafnianClient,
     HomoClient,
     KLTClient,
+    MolecularClient,
     NotebookClient,
 )
 
@@ -129,6 +133,8 @@ class QumulatorClient:
         self.hafnian  = HafnianClient(api_url, api_key)
         self.notebook = NotebookClient(api_url, api_key)
         self.evolve   = EvolveClient(api_url, api_key)
+        self.molecular = MolecularClient(api_url, api_key)
+        self.dmrg     = DMRGClient(api_url, api_key)
 
 
 __all__ = [
@@ -146,6 +152,8 @@ __all__ = [
     "HafnianClient",
     "NotebookClient",
     "EvolveClient",
+    "MolecularClient",
+    "DMRGClient",
     # Result models
     "HomoResult",
     "KLTResult",
@@ -160,6 +168,9 @@ __all__ = [
     "QKZMResult",
     "LatticeResult",
     "AKLTResult",
+    # Molecular / DMRG models
+    "MolecularEnergyResult",
+    "DMRGEnergyResult",
     # Errors
     "QumulatorHTTPError",
 ]

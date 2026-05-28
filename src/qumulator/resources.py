@@ -9,6 +9,7 @@ from typing import Any, Optional
 from qumulator._http import _BaseClient, QumulatorHTTPError
 from qumulator.models import (
     AKLTResult,
+    DMRGEnergyResult,
     EvolveResult,
     GroundStateResult,
     HafnianResult,
@@ -17,6 +18,7 @@ from qumulator.models import (
     JobStatus,
     KLTResult,
     LatticeResult,
+    MolecularEnergyResult,
     QKZMResult,
 )
 
@@ -669,6 +671,208 @@ class EvolveClient(_BaseClient):
 
     def _post_timeout(self, path: str, body: dict, timeout: float) -> dict:
         """POST with a longer httpx timeout to accommodate slow TEBD jobs."""
+        import httpx
+        with httpx.Client(
+            base_url=self._api_url,
+            headers=self._headers,
+            timeout=timeout,
+        ) as client:
+            resp = client.post(path, json=body)
+            self._raise_for_status(resp)
+            return resp.json()
+
+
+class MolecularClient(_BaseClient):
+    """
+    Molecular active-space energy via Exact Geometric MPS (GMPS/MPO).
+
+    Computes ⟨ψ|H|ψ⟩ + e_nuc for a molecular active space given 1e/2e integrals
+    and an optional Givens orbital-rotation circuit.  Supports up to 50 orbitals
+    (100 spin-orbital qubits).
+
+    Quick start
+    -----------
+    ::
+
+        import numpy as np
+        from qumulator import QumulatorClient
+
+        client = QumulatorClient()
+
+        # H2 minimal basis — 1e/2e integrals from PySCF
+        result = client.molecular.energy(
+            h1e=h1e.tolist(),
+            h2e=h2e.tolist(),
+            n_elec=[1, 1],
+            e_nuc=0.7137539936,
+        )
+        print(f"E(HF)  = {result.energy:.8f} Ha")   # −1.11734 Ha for STO-3G H2
+
+        # Aspirin fragment — with Givens rotation circuit
+        result = client.molecular.energy(
+            h1e=h1e.tolist(),
+            h2e=h2e.tolist(),
+            n_elec=[8, 8],
+            e_nuc=e_nuc,
+            circuit=[{"qi": 0, "qj": 2, "theta": 0.15}, ...],
+        )
+        print(f"E(GMPS) = {result.energy:.8f} Ha")
+    """
+
+    def energy(
+        self,
+        h1e: list[list[float]],
+        h2e: list[list[list[list[float]]]],
+        n_elec: list[int],
+        e_nuc: float = 0.0,
+        circuit: Optional[list[dict]] = None,
+        coup_thr: float = 1e-6,
+        timeout: float = 300.0,
+    ) -> "MolecularEnergyResult":
+        """
+        Compute exact molecular active-space energy via GMPS/MPO.
+
+        Parameters
+        ----------
+        h1e : list[list[float]]
+            n_orb × n_orb 1-electron integral matrix.
+            From PySCF: ``mc.get_h1eff()[0]``.
+        h2e : list[list[list[list[float]]]]
+            n_orb^4 2-electron integrals in chemist notation.
+            From PySCF: ``ao2mo.restore(1, mc.get_h2eff(), mc.ncas)``.
+        n_elec : list[int]
+            [n_alpha, n_beta] active electrons.
+        e_nuc : float
+            Nuclear repulsion + core energy (Ha).  Added to the returned energy.
+            From PySCF: ``mc.energy_nuc() + mc.get_h1eff()[1]``.
+        circuit : list[dict], optional
+            Givens orbital-rotation gates.  Each gate: ``{"qi": int, "qj": int, "theta": float}``.
+            If omitted, returns the Hartree-Fock reference energy.
+        coup_thr : float
+            Orbital coupling threshold for fragment detection (default 1e-6).
+            Decrease for stronger fragmentation; increase to merge fragments.
+        timeout : float
+            Request timeout in seconds (default 300 s).
+
+        Returns
+        -------
+        MolecularEnergyResult
+        """
+        from qumulator.models import MolecularEnergyResult
+        body: dict = dict(
+            h1e=h1e,
+            h2e=h2e,
+            n_elec=n_elec,
+            e_nuc=e_nuc,
+            coup_thr=coup_thr,
+            circuit=circuit or [],
+        )
+        data = self._post_timeout("/molecular/energy", body, timeout=timeout)
+        return MolecularEnergyResult(**data)
+
+    def _post_timeout(self, path: str, body: dict, timeout: float) -> dict:
+        import httpx
+        with httpx.Client(
+            base_url=self._api_url,
+            headers=self._headers,
+            timeout=timeout,
+        ) as client:
+            resp = client.post(path, json=body)
+            self._raise_for_status(resp)
+            return resp.json()
+
+
+class DMRGClient(_BaseClient):
+    """
+    Molecular ground-state energy via two-site DMRG with Numba JIT.
+
+    No circuit ansatz required — DMRG is a variational eigenvalue solver that
+    systematically improves as bond dimension d_max increases.  Best for
+    1D-like correlation structures and small-to-medium active spaces (n_orb ≤ 30).
+    For larger or multi-fragment active spaces use :class:`MolecularClient`.
+
+    Quick start
+    -----------
+    ::
+
+        import numpy as np
+        from qumulator import QumulatorClient
+
+        client = QumulatorClient()
+
+        # H2 CAS(2,2) — exact at d_max=64
+        result = client.dmrg.energy(
+            h1e=h1e.tolist(),
+            h2e=h2e.tolist(),
+            n_elec=[1, 1],
+            e_nuc=0.7137539936,
+            d_max=64,
+        )
+        print(f"E(DMRG) = {result.energy:.8f} Ha")   # −1.13728 Ha (FCI exact)
+        print(f"converged={result.converged}, t={result.wall_time_s:.2f} s")
+
+        # Water CAS(7,7)
+        result = client.dmrg.energy(
+            h1e=h1e.tolist(), h2e=h2e.tolist(),
+            n_elec=[4, 3], e_nuc=e_nuc,
+            d_max=64, n_sweeps=8,
+        )
+        print(f"E(DMRG/H2O) = {result.energy:.6f} Ha")
+    """
+
+    def energy(
+        self,
+        h1e: list[list[float]],
+        h2e: list[list[list[list[float]]]],
+        n_elec: list[int],
+        e_nuc: float = 0.0,
+        d_max: int = 64,
+        n_sweeps: int = 8,
+        tol: float = 1e-10,
+        timeout: float = 900.0,
+    ) -> "DMRGEnergyResult":
+        """
+        Compute the DMRG ground-state energy for a molecular active space.
+
+        Parameters
+        ----------
+        h1e : list[list[float]]
+            n_orb × n_orb 1-electron integral matrix.
+        h2e : list[list[list[list[float]]]]
+            n_orb^4 2-electron integrals (chemist notation).
+        n_elec : list[int]
+            [n_alpha, n_beta] active electrons (informational; DMRG is number-agnostic).
+        e_nuc : float
+            Nuclear repulsion + core energy (Ha) to add to the DMRG result.
+        d_max : int
+            Maximum MPS bond dimension χ (1–512, default 64).
+            d_max=64 is exact for n_orb ≤ 6; increase for larger active spaces.
+        n_sweeps : int
+            Maximum number of full DMRG sweeps (1–50, default 8).
+        tol : float
+            Convergence threshold on |ΔE| per sweep (default 1e-10 Ha).
+        timeout : float
+            Request timeout in seconds (default 900 s; DMRG can be slow).
+
+        Returns
+        -------
+        DMRGEnergyResult
+            If ``converged=False``, increase ``d_max`` or ``n_sweeps``.
+        """
+        from qumulator.models import DMRGEnergyResult
+        body = dict(
+            h1e=h1e,
+            h2e=h2e,
+            n_elec=n_elec,
+            e_nuc=e_nuc,
+            d_max=d_max,
+            n_sweeps=n_sweeps,
+            tol=tol,
+        )
+        data = self._post_timeout("/molecular/dmrg", body, timeout=timeout)
+        return DMRGEnergyResult(**data)
+
+    def _post_timeout(self, path: str, body: dict, timeout: float) -> dict:
         import httpx
         with httpx.Client(
             base_url=self._api_url,
