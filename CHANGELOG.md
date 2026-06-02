@@ -5,6 +5,25 @@ All notable changes to the Qumulator SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`JobStatus.entanglement_dof`** (`Optional[float]`) — Effective entanglement
+  degrees of freedom of the circuit simulation at job completion. Derived from the
+  singular-value spectrum of the off-diagonal 1-RDM block:
+  `dof = (Σσᵢ)² / Σσᵢ²`. `None` for non-circuit jobs (HOMO, hafnian, molecular).
+
+- **`JobStatus.dof_converged`** (`Optional[bool]`) — `True` when `entanglement_dof`
+  has stopped growing between layers (relative change < 1 %). Signals entanglement
+  saturation: additional circuit depth will not increase correlation.
+  `None` when `entanglement_dof` is not available.
+
+- **Docs** — `result-types.md`, `rest-jobs.md`, and `README.md` updated with field
+  descriptions and a polling JSON example showing the new fields.
+
+---
+
 ## [0.5.1] — 2026-05-28
 
 ### Fixed

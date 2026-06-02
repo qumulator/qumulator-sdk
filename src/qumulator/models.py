@@ -18,6 +18,8 @@ class JobStatus(BaseModel):
     completed_at: str | None = None
     result: dict | None = None
     error: str | None = None
+    entanglement_dof: Optional[float] = None
+    dof_converged: Optional[bool] = None
 
     @property
     def is_done(self) -> bool:

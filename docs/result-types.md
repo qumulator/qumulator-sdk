@@ -41,3 +41,5 @@
 | `error` | `str\|None` | Error message when failed |
 | `is_done` | `bool` | Property: True when completed or failed |
 | `ok` | `bool` | Property: True when completed |
+| `entanglement_dof` | `float\|None` | Effective entanglement degrees of freedom of the circuit at job completion. Derived from the singular-value spectrum of the off-diagonal 1-RDM block: `dof = (Σ σᵢ)² / Σ σᵢ²`. `None` for jobs that do not run a circuit engine (e.g. HOMO, hafnian). |
+| `dof_converged` | `bool\|None` | `True` when the entanglement DOF has stopped growing between layers (convergence criterion: relative change < 1 %). Indicates the circuit has reached its entanglement saturation point. `None` when `entanglement_dof` is not available. |

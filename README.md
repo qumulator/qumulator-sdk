@@ -408,6 +408,11 @@ print(result.entanglement_depth) # floor(f_Q) — certified entanglement depth
 # Accuracy bound and phase
 print(result.predicted_tvd)      # TVD upper bound; 0.0 for exact modes
 print(result.entropy_map)        # per-bond von Neumann entropy (bits)
+
+# Entanglement degrees-of-freedom diagnostics (on the job object, not result)
+status = client.jobs.get(job_id)
+print(status.entanglement_dof)   # float — effective entanglement DOF; 0.0 = product state
+print(status.dof_converged)      # bool  — True when DOF has stopped growing
 ```
 
 The QFI density is the Tóth–Gühne (2012) multipartite entanglement witness computed
@@ -418,8 +423,13 @@ from the ZZ correlator matrix — an established, independently verifiable quant
 - `entanglement_depth = floor(f_Q_density)`
 
 `predicted_tvd` is a model-based upper bound on the total variation distance to the
-exact distribution, calibrated per KLT entanglement phase (Z1–Z5). It is `0.0` for
-unconditionally exact modes (`"exact"`, `"cluster"`).
+exact distribution. It is `0.0` for unconditionally exact modes (`"exact"`, `"cluster"`).
+
+`entanglement_dof` is the effective rank of the circuit's entanglement structure,
+computed as `(Σσᵢ)² / Σσᵢ²` from the singular-value spectrum of the 1-RDM. It grows
+with circuit depth and saturates when `dof_converged` becomes `True` — a signal that
+additional depth adds no new entanglement correlation. Both fields are on the
+`JobStatus` object returned by `client.jobs.get()`, not on the circuit `result` directly.
 
 ---
 
