@@ -10,9 +10,14 @@ scales to 1,000 qubits.
 | `"mps"` | General circuits; low-entanglement depth, VQE, QAOA, 1D/near-1D connectivity. | ≤ 1,000 |
 | `"cluster_mps"` | Cluster-factorised MPS. VQE, QAOA, chemistry ansätze, shallow random circuits. | ≤ 1,000 |
 | `"cluster_statevector"` | Exact cluster-factorisation engine. No 2ᴺ state vector is ever allocated. Memory O(Σ 2^k_c). Exact for *all* circuits (TVD = 0). | ≤ 1,000 |
+| `"cluster_exact_graph"` | Near-volume-law circuits with graph entanglement topology. | ≤ 50 |
 | `"hamiltonian"` | Direct time evolution under a Pauli-string Hamiltonian. Use with `evolve_hamiltonian()`. | ≤ 1,000 |
 | `"gaussian"` | Clifford-heavy circuits. Returns a `GaussianCertificate` classifying non-Clifford content. Memory scales as O(N²). | ≤ 1,000 |
 | `"greens"` | Green's function / Bloch encoding. Exact within the free-fermion (Gaussian) subspace. O(N²) memory. Returns per-qubit marginals and von Neumann entropy map. | ≤ 1,000 |
+| `"cluster_gaussian"` | **Cluster-factorised exact probability engine.** Never builds 2^N; O(Σ 2^k_c) memory per cluster. | ≤ 1,000 |
+| `"fibonacci_anyon"` | **Topological quantum computing.** SU(2)₃ Chern-Simons Fibonacci anyons. Hilbert space dimension F_{N+2}. Native braid gates: `fibonacci_f`, `fibonacci_r`, `fibonacci_b`, `fibonacci_bdg`. Returns topological XEB score. | ≤ 1,000 |
+| `"kuramoto"` | **Bose-Hubbard BEC / Kuramoto synchronisation.** O(N²) phase-oscillator engine. Superfluid order parameter r = \|⟨e^{iθ}⟩\|. Ideal for large-N BEC and synchronisation studies. Use `kuramoto_diagnostics()` for full phase-space output. | ≤ 10,000 |
+| `"sparse"` | **Adaptive sparse exact simulation.** O(K log K) per gate, K = number of active basis states. Ideal for particle-conserving circuits, GHZ/cluster states, structured chemistry. Up to 78× faster than dense statevector at N=20 for sparse circuits. | Unlimited (K ≪ 2^N) |
 
 !!! info
     Depth limits apply depending on qubit count. Exceeding a tier limit returns HTTP 422
@@ -24,16 +29,16 @@ scales to 1,000 qubits.
 
 When `mode="auto"`, the engine analyses the circuit before simulation using the
 **Kaplan-Yorke dimension** (D_KY), which characterises the fractal dimension of the
-circuit's entanglement attractor structure. The routing thresholds are:
+circuit's entanglement structure. The routing thresholds are:
 
 | Condition | Resolved mode | Regime |
 |---|---|---|
 | Tree entanglement graph | `"mps"` | Treewidth = 1; MPS is exact |
 | No non-Clifford (T) gates | `"gaussian"` | Clifford-only; O(N²), exact |
-| D_KY < 2.1 | `"cluster_mps"` | Lorenz area-law |
-| 2.1 ≤ D_KY < 2.5 | `"cluster_mps"` | Rössler/Halvorsen sector |
+| D_KY < 2.1 | `"cluster_mps"` | Area-law (low entanglement) |
+| 2.1 ≤ D_KY < 2.5 | `"cluster_mps"` | Intermediate entanglement |
 | 2.5 ≤ D_KY < 2.9 | `"cluster_exact_graph"` | 3D-like, near volume-law |
-| D_KY ≥ 2.9, N ≤ 20 | `"statevector"` | Nosé-Hoover (dense), exact |
+| D_KY ≥ 2.9, N ≤ 20 | `"statevector"` | Volume-law (dense), exact |
 | D_KY ≥ 2.9, N > 20 | `"statevector"` ⚠ | Classically hard; simulation may be slow |
 
 The resolved mode is returned in `result.resolved_mode`. Routing diagnostics

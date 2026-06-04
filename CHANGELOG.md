@@ -22,7 +22,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [Unreleased] — June 4, 2026
+
+> **Note:** The two most recent change batches (June 3 push + June 4 uncommitted) are **documentation fixes only** — no SDK Python source code was modified in either batch. All changes are Markdown files: `CHANGELOG.md`, `README.md`, `docs/*.md`.
+
+### Documentation Fixes — June 4, 2026 *(uncommitted)*
+
+> **Files:** `CHANGELOG.md`, `README.md`, `docs/modes.md`, `docs/notebooks.md`, `docs/rest-circuits.md`
+
+- `docs/modes.md` — Added `"cluster_exact_graph"`, `"fibonacci_anyon"`, `"kuramoto"`, `"cluster_gaussian"`, `"sparse"` to the mode table. Removed `"dyson"` (experimental internal alias, never a stable public mode; use `"greens"` for 1-RDM / free-fermion simulation).
+- `docs/rest-circuits.md` — Updated valid mode list to match engine route validators.
+- `README.md` — Restored Kuramoto BEC benchmark row; restored Fibonacci anyon braiding benchmark and notebook link; added sparse GHZ benchmark row.
+- `docs/notebooks.md` — Restored anyon braiding notebook entry with `mode="fibonacci_anyon"` reference; added Kuramoto BEC and sparse engine notebook entries.
+- `CHANGELOG.md` — This entry.
+
+Four engine simulation modes are now live and documented. All four integration-tested in Docker (PASS). No SDK code change required — use `mode=` in the existing circuit endpoint:
+
+| Mode | Description |
+|---|---|
+| `"fibonacci_anyon"` | SU(2)₃ Chern-Simons topological quantum computing. Hilbert space dimension F_{N+2}. Native braid gates: `fibonacci_f` (F-matrix), `fibonacci_r` (R-matrix), `fibonacci_b` / `fibonacci_bdg` (braid σ_k / σ_k†). Topological XEB score via `.compute_xeb()`. Matches Microsoft topological qubit target. |
+| `"kuramoto"` | Bose-Hubbard / Kuramoto BEC phase-oscillator engine. O(N²) memory. Superfluid order parameter r = \|⟨e^{iθ}⟩\|. `eng.kuramoto_diagnostics()` returns full phase-space output. Scales to N = 10,000+ oscillators. |
+| `"cluster_gaussian"` | Exact cluster-factorised probability engine. Memory O(Σ 2^k_c) per cluster. Never builds the full 2^N statevector. Exact joint probabilities P(x) via the cluster Born rule. |
+| `"sparse"` | Adaptive sparse exact simulation. O(K log K) per gate, K = active basis states. Up to 78× faster than dense statevector for sparse circuits (GHZ, particle-conserving). Auto-hands off to MPS when K exceeds the crossover threshold. |
+
+Experimental internal engine mode names removed from documentation. No impact on any public circuit API mode.
+
+---
+
+### Documentation Fixes — June 3, 2026 *(pushed as `fca686e`)*
+
+> **Files:** `CHANGELOG.md`, `README.md`, `docs/circuit.md`, `docs/index.md`, `docs/limits.md`, `docs/notebooks.md`, `docs/qasm.md`, `docs/qiskit.md` — documentation only, no code.
+
+- **`README.md`** — Corrected the breaking-changes rename table: `mode="auto"` was incorrectly listed as removed; it was re-added in v0.4.0 as a first-class auto-routing mode.
+- **`docs/circuit.md`** — Mode names in `bond_dim`, `return_statevector`, and `return_probabilities` descriptions corrected from old names (`"compressed"`, `"tensor"`, `"exact"`) to current names.
+- **`docs/qasm.md`** — Code example used `mode="exact"`; corrected to `mode="statevector"`.
+- **`docs/qiskit.md`** — Code comment and `mode=` argument used old name `"compressed"`; corrected to `"cluster_mps"`.
+- **`docs/limits.md`** — Warning admonition referred to `"exact"` mode; corrected to `"statevector"`.
+- **`docs/index.md`** — Removed duplicate sentence in the open-source admonition.
+- **`docs/notebooks.md`** — Removed duplicate `## Demo notebooks` section heading; renamed second occurrence to `## Quantum Computing Demos`.
+
+---
 
 ### Changed (Breaking — Renamed)
 
@@ -66,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   These were never public SDK API but are documented here for completeness:
   `"klt_phase"` → `"phase"`, `"klt_stone"` → `"hamiltonian"`, `"klt_mps"` → `"mps"`,
   `"klt_cluster_mps"` → `"cluster_mps"`, `"klt_greens"` → `"greens"`,
-  `"klt_gaussian"` → `"gaussian"`, `"klt_matrix_engine"` / `"klt_t4"` → `"dyson"`.
+  `"klt_gaussian"` → `"gaussian"`. The `"klt_matrix_engine"` / `"klt_t4"` strings are no longer valid.
 - Engine class `ExactClusterEngine` → `ClusterStatevectorEngine` (internal; not in public SDK).
 - Engine class `KitaevChainEngine` replaces `KLTKitaevChainEngine` (internal only).
 
@@ -91,25 +130,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Docs** — `result-types.md`, `rest-jobs.md`, and `README.md` updated with field
   descriptions and a polling JSON example showing the new fields.
-
-### Fixed (Docs)
-
-- **`README.md`** — Corrected the breaking-changes rename table: `mode="auto"` was
-  incorrectly listed as `*(removed)* — use mode="mps"`. `mode="auto"` was re-added in
-  v0.4.0 as a first-class auto-routing mode; the table now correctly shows it as
-  **re-added** with a description of its preflight / D_KY routing behaviour.
-- **`docs/circuit.md`** — `bond_dim` parameter description referenced the old mode
-  names `"compressed"` and `"tensor"`; corrected to `"cluster_mps"` and `"mps"`.
-  `return_statevector` and `return_probabilities` described as requiring `"exact"` mode;
-  corrected to `"statevector"`.
-- **`docs/qasm.md`** — Code example used `mode="exact"`; corrected to `mode="statevector"`.
-- **`docs/qiskit.md`** — Code comment and `mode=` argument used old name `"compressed"`;
-  corrected to `"cluster_mps"`.
-- **`docs/limits.md`** — Warning admonition referred to `"exact"` mode; corrected to
-  `"statevector"`.
-- **`docs/index.md`** — Removed duplicate sentence in the open-source admonition.
-- **`docs/notebooks.md`** — Removed duplicate `## Demo notebooks` section heading;
-  renamed second occurrence to `## Quantum Computing Demos`.
 
 ---
 

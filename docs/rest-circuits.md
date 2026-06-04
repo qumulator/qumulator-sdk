@@ -10,7 +10,7 @@
 | `instructions` | `array` | | JSON gate instruction list. Requires `n_qubits`. |
 | `n_qubits` | `int` | | Register width. Required when using `instructions`. |
 | `shots` | `int` | | Measurement samples. Default: 1024. Max: 1,000,000. |
-| `mode` | `string` | | Simulation mode. One of: `"auto"`, `"statevector"`, `"mps"`, `"cluster_mps"`, `"cluster_statevector"`, `"cluster_exact_graph"`, `"gaussian"`, `"greens"`, `"hamiltonian"`, `"dyson"`. Default: `"statevector"`. Pass `"auto"` to let the engine select the optimal mode based on circuit analysis. |
+| `mode` | `string` | | Simulation mode. One of: `"auto"`, `"statevector"`, `"mps"`, `"cluster_mps"`, `"cluster_statevector"`, `"cluster_exact_graph"`, `"gaussian"`, `"greens"`, `"hamiltonian"`, `"cluster_gaussian"`, `"fibonacci_anyon"`, `"kuramoto"`, `"sparse"`. Default: `"statevector"`. Pass `"auto"` to let the engine select the optimal mode based on circuit analysis. |
 | `seed` | `int` | | RNG seed for reproducible sampling. |
 | `return_statevector` | `bool` | | Include complex amplitude vector in result. |
 | `return_entropy_map` | `bool` | | Include per-qubit entropy values in result. |

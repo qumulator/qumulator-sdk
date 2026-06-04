@@ -255,6 +255,7 @@ Statevector mode: max **20 qubits** at any depth.
 | RCS circuit (exact) | 20 q, depth 20 | XEB = 1.024 | exact statevector | **0.00%** | 8.5–9.6 s |
 | QUBO dense optimisation | N=100 | matches SA optimum | simulated annealing | 0% | ~3 s |
 | Kuramoto BEC (large-scale) | N=500 oscillators, 2 MB | r=0.114 (Mott-like) | statevector: 2⁵⁰⁰ bytes | — | 3.22 s |
+| Sparse GHZ state | N=500, K=2 | exact, fidelity=1.0 | dense statevector | **< 10⁻¹⁵** | 4 ms |
 
 ### QS notebooks
 
@@ -404,11 +405,7 @@ Hamiltonian presets: `"ising_1d"`, `"xx_model"`, `"heisenberg"`, `"kuramoto_isin
 Custom Pauli-sum terms are also supported via `hamiltonian={"terms": [...]}`.
 
 ### CM benchmarks
-
-| Problem | Size | Result | Reference | Error | Time |
-|---|---|---|---|---|---|
-| H₁₂ Heisenberg chain | 12 sites | −11.000 | −11.000 (exact diag.) | **0.00%** | ~0.27 s |
-| Non-Abelian anyon braiding | Fibonacci anyons | ‖[σ₁,σ₂]‖ = 1.272 | SU(2)₃ exact | **< 0.001%** | < 1 ms |
+| Non-Abelian anyon braiding | Fibonacci anyons (N=8) | ‖[σ₁,σ₂]‖ = 1.272 | SU(2)₃ exact | **< 0.001%** | < 1 ms |
 | Kitaev chain BdG | L=1000 sites | W=−1, gap=2.000 | analytic (exact) | **< 10⁻¹²** | 0.84 s |
 | MBL discrete time crystal | 8 q, 24 Floquet | autocorr = 0.827 | Google Sycamore 2021 | Consistent | ~1 s |
 | Holographic wormhole | 2×6 SYK sites | fidelity 94.89% | Google Sycamore 2022 | — | ~5 s |
@@ -418,7 +415,7 @@ Custom Pauli-sum terms are also supported via `hamiltonian={"terms": [...]}`.
 | Notebook | Description |
 |---|---|
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/wormhole.ipynb) | **Holographic wormhole** — traversable wormhole, matches Google 2022 |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/anyon_braiding.ipynb) | **Anyon braiding** — Fibonacci anyons, matches Microsoft topological target |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/anyon_braiding.ipynb) | **Anyon braiding** — Fibonacci anyons, SU(2)₃ Chern-Simons braiding, matches Microsoft topological target |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/time_crystal.ipynb) | **Discrete time crystal** — MBL Floquet, matches Google Sycamore 2021 |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/tebd_quench_demo.ipynb) | **Collapse & revival / QKZM** — TEBD Hamiltonian evolution, Kibble-Zurek scaling |
 | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h12_vqe.ipynb) | **H₁₂ chain ground state** — 12-site Ising chain, `client.hamiltonian` |

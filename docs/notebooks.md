@@ -65,7 +65,7 @@ These notebooks apply quantum computing to problems anyone can relate to — no 
 |---|---|
 | [Willow RCS](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/willow_rcs_benchmark.ipynb) | 105-qubit exact simulation on a Willow-layout SYC grid |
 | [Holographic wormhole](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/wormhole.ipynb) | Traversable wormhole protocol — matches Google Sycamore 2022 |
-| [Anyon braiding](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/anyon_braiding.ipynb) | Fibonacci anyons, non-Abelian braiding — matches Microsoft topological target |
+| [Anyon braiding](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/anyon_braiding.ipynb) | Fibonacci anyons, SU(2)₃ Chern-Simons non-Abelian braiding — matches Microsoft topological target — `mode="fibonacci_anyon"` |
 | [Discrete time crystal](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/time_crystal.ipynb) | MBL Floquet dynamics — matches Google Sycamore 2021 |
 | [QUBO optimisation](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/qubo.ipynb) | 100-variable dense combinatorial optimisation |
 | [Cluster statevector engine](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/cluster_statevector_demo.ipynb) | Exact simulation without 2ᴺ state vector — `mode="cluster_statevector"` |
@@ -75,6 +75,8 @@ These notebooks apply quantum computing to problems anyone can relate to — no 
 | [CHSH Bell inequality](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/chsh_bell.ipynb) | Bell state + CHSH correlator, S=2√2 Tsirelson bound |
 | [H₁₂ chain ground state](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h12_vqe.ipynb) | 12-site Ising chain ground state via Hamiltonian solver — `client.hamiltonian` |
 | [Cluster geometry](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/cluster_geometry.ipynb) | Entanglement growth in random H/CX/Rz brickwork circuits |
+| [Kuramoto BEC](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/kuramoto_bec.ipynb) | N=500 Bose-Hubbard / Kuramoto superfluid—Mott transition — `mode="kuramoto"` |
+| [Sparse circuit engine](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/sparse_engine_demo.ipynb) | GHZ at N=500, Givens particle-conserving circuits — `mode="sparse"`, up to 78× speedup |
 
 ## Quantum Chemistry
 
