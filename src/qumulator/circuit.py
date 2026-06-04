@@ -1,5 +1,5 @@
-﻿"""
-Qumulator Circuit Client — quantum circuit execution via the Qumulator API.
+"""
+Qumulator Circuit Client � quantum circuit execution via the Qumulator API.
 
 Submit quantum gate circuits to the Qumulator service and retrieve
 measurement counts, statevectors, probabilities, or entropy diagnostics.
@@ -32,11 +32,10 @@ Quickstart
 
 Execution modes
 ---------------
-``'auto'``         Server selects the optimal backend for your circuit.
-``'exact'``        Full statevector. Correct for any circuit. N <= ~25.
-``'compressed'``   Memory-efficient. Suited for large N, low-to-moderate
+``'statevector'``  Full statevector. Correct for any circuit. N <= ~25.
+``'cluster_mps'``   Memory-efficient. Suited for large N, low-to-moderate
                    entanglement (VQE, QAOA, chemistry).
-``'tensor'``       Tensor-network backend. Efficient for structured and
+``'mps'``          Tensor-network backend. Efficient for structured and
                    1D circuits. Supports N > 50.
 ``'hamiltonian'``  Direct Hamiltonian evolution without gate decomposition.
                    Use with :meth:`CircuitEngine.evolve_hamiltonian`.
@@ -45,13 +44,13 @@ Execution modes
                    Returns a :class:`~qumulator.models.GaussianCertificate` in
                    ``result.gaussian_certificate`` classifying the circuit as
                    simulable, likely Gaussian, or requiring a correction.
-                   Memory scales as O(n²) instead of O(2ⁿ).
-``'cluster'``      Exact cluster-factorization engine. No 2ⁿ state vector is
-                   ever allocated. Memory O(Σ 2^k_c) where k_c is the size of
+                   Memory scales as O(n�) instead of O(2n).
+``'cluster_statevector'``  Exact cluster-factorization engine. No 2n state vector is
+                   ever allocated. Memory O(S 2^k_c) where k_c is the size of
                    each entangled cluster. Exact for ALL circuits (TVD = 0).
                    Returns per-qubit marginal probabilities.
 ``'greens'``       Green's function / Bloch encoding. Exact within the
-                   free-fermion (Gaussian) subspace. O(N²) memory. Returns
+                   free-fermion (Gaussian) subspace. O(N�) memory. Returns
                    1-RDM and entropy map. Note: CNOT in the exchange subspace
                    is not faithfully represented; use ``'cluster'`` instead.
 """
@@ -67,20 +66,6 @@ from qumulator._http import _BaseClient, QumulatorHTTPError
 from qumulator.models import GaussianCertificate
 
 # ---------------------------------------------------------------------------
-#  Mode translation table
-# ---------------------------------------------------------------------------
-
-_MODE_MAP: Dict[str, str] = {
-    "auto":        "klt_mps",
-    "exact":       "statevector",
-    "compressed":  "klt_cluster_mps",
-    "tensor":      "klt_mps",
-    "hamiltonian": "klt_stone",
-    "gaussian":    "klt_gaussian",
-    "cluster":     "klt_cluster",
-    "greens":      "klt_greens",
-}
-
 # Tier depth limits: (max_n_qubits, max_entangling_depth)
 # These mirror the published tier table. Modes that are unconditionally exact
 # (statevector, cluster, greens, gaussian) are handled separately.
@@ -91,8 +76,8 @@ _TIER_DEPTH_LIMITS: List[Tuple[int, int]] = [
     (1000,  7),   # Tier 4
 ]
 
-# Modes that have no depth restriction (exact or non-MPS)
-_EXACT_MODES = {"exact", "cluster", "greens", "gaussian"}
+# Modes that have no depth restriction (exact or non-MPS, see _EXACT_MODES set)
+_EXACT_MODES = {"statevector", "cluster_statevector", "greens", "gaussian"}
 # Statevector mode qubit cap
 _STATEVECTOR_MAX_QUBITS = 20
 
@@ -103,17 +88,20 @@ def _validate_circuit(
     mode: str,
 ) -> Optional[str]:
     """
-    Check circuit parameters against published tier limits. Pure client-side —
+    Check circuit parameters against published tier limits. Pure client-side �
     no API call. Returns an error message string if invalid, else None.
     """
     if mode in _EXACT_MODES:
-        if mode == "exact" and n_qubits > _STATEVECTOR_MAX_QUBITS:
+        if mode == "statevector" and n_qubits > _STATEVECTOR_MAX_QUBITS:
             return (
-                f"'exact' (statevector) mode supports at most {_STATEVECTOR_MAX_QUBITS} "
+                f"'statevector' mode supports at most {_STATEVECTOR_MAX_QUBITS} "
                 f"qubits; circuit has {n_qubits}. "
-                f"Consider 'auto', 'compressed', or 'tensor' mode for larger circuits."
+                f"Consider 'mps', 'cluster_mps', or 'cluster_statevector' mode for larger circuits."
             )
         return None  # cluster/greens/gaussian have no depth constraint
+
+    if mode == "auto":
+        return None  # mode will be resolved server-side; no client-side depth check
 
     # Count entangling layers (gates acting on 2+ qubits)
     entangling_depth = sum(
@@ -136,28 +124,28 @@ def _validate_circuit(
         return (
             f"Circuit has {n_qubits} qubits and {entangling_depth} entangling "
             f"layer(s); the tier limit for this qubit range is {max_depth}. "
-            f"Reduce entangling depth or use 'cluster' mode (exact for any depth, "
-            f"memory O(Σ 2^k_c))."
+            f"Reduce entangling depth or use 'cluster_statevector' mode (exact for any depth, "
+            f"memory O(S 2^k_c))."
         )
 
     return None
 
 
 # ---------------------------------------------------------------------------
-#  CU cost model — client-side estimator (no API call)
+#  CU cost model � client-side estimator (no API call)
 # ---------------------------------------------------------------------------
 #
-# 1 CU ≈ 1 second of engine wall-clock CPU time.
+# 1 CU � 1 second of engine wall-clock CPU time.
 #
 # Calibration benchmarks (observed, from published docs):
-#   Simple statevector circuit         :   1–3 CU
+#   Simple statevector circuit         :   1�3 CU
 #   20-qubit depth-20 statevector      :  ~45 CU
 #   54-qubit chi=16 MPS depth-6        :  ~58 CU
 #   105-qubit chi=16 MPS depth-5       :  ~46 CU
 #   1000-qubit chi=16 MPS depth-3      : ~112 CU
 #
-# Statevector formula: O(2^N × G)  with constant _K_SV
-# MPS formula:         O(N × χ³ × G) with constant _K_MPS
+# Statevector formula: O(2^N � G)  with constant _K_SV
+# MPS formula:         O(N � ?� � G) with constant _K_MPS
 #
 # G = number of 2-qubit gates (dominant cost driver).
 # Both formulae are approximations; actual cost depends on entanglement structure.
@@ -170,42 +158,37 @@ _PER_SHOT_CU = 0.15e-3
 """Additional cost per sample shot (CU per shot). ~0.15 CU per 1000 shots."""
 
 _DEFAULT_BOND_DIM = 16
-"""Assumed χ when bond_dim is not specified for MPS modes."""
+"""Assumed ? when bond_dim is not specified for MPS modes."""
 
-# O(2^N × G) calibration constant.
-# Calibrated: 20q, ~200 entangling gates → 45 CU
-# k = 45 / (2^20 × 200) ≈ 2.14e-7
+# O(2^N � G) calibration constant.
+# Calibrated: 20q, ~200 entangling gates ? 45 CU
+# k = 45 / (2^20 � 200) � 2.14e-7
 _K_SV = 2.14e-7
 
-# O(N × χ³ × G) calibration constant.
-# Calibrated: 54q, χ=16, ~162 entangling gates → 58 CU
-# k = 58 / (54 × 16^3 × 162) ≈ 1.62e-6
+# O(N � ?� � G) calibration constant.
+# Calibrated: 54q, ?=16, ~162 entangling gates ? 58 CU
+# k = 58 / (54 � 16^3 � 162) � 1.62e-6
 _K_MPS = 1.62e-6
 
 _MODE_MULTIPLIER: Dict[str, float] = {
-    # User-facing aliases
-    "exact":       1.0,
-    "compressed":  1.5,
-    "tensor":      2.0,
-    "auto":        1.5,
-    "cluster":     3.0,
-    "greens":      1.2,
-    "gaussian":    1.0,
-    "hamiltonian": 1.5,
-    "local":       0.0,  # local simulation — no server-side billing
-    # Internal engine names (backend may send these back)
-    "statevector":     1.0,
-    "klt_cluster_mps": 1.5,
-    "klt_mps":         2.0,
-    "klt_cluster":     3.0,
-    "klt_greens":      1.2,
-    "klt_gaussian":    1.0,
-    "klt_stone":       1.5,
+    "statevector":          1.0,
+    "cluster_mps":          1.5,
+    "mps":                  2.0,
+    "cluster_statevector":  3.0,
+    "greens":               1.2,
+    "gaussian":             1.0,
+    "hamiltonian":          1.5,
+    "cluster_exact":        3.0,
+    "cluster_exact_graph":  3.0,
+    "dyson":                2.0,
+    "matrix":               1.0,
+    "phase":                1.0,
+    "local":                0.0,  # local simulation — no server-side billing
+    "auto":                 0.0,  # cost unknown until resolved; actual cost in job receipt
 }
 
 # Modes that use the statevector (2^N) kernel rather than MPS
-_SV_MODES = {"exact", "statevector", "cluster", "klt_cluster",
-             "greens", "klt_greens", "gaussian", "klt_gaussian"}
+_SV_MODES = {"statevector", "cluster_statevector", "greens", "gaussian"}
 
 
 @dataclasses.dataclass
@@ -215,12 +198,12 @@ class CostEstimate:
 
     Produced by :meth:`CircuitEngine.estimated_cost` and
     :meth:`CircuitClient.estimate_cost`.  This estimate is purely
-    formula-based — no API call is made.
+    formula-based � no API call is made.
 
     Attributes
     ----------
     total_cu : float
-        Total estimated CU cost.  1 CU ≈ 1 second of engine CPU time.
+        Total estimated CU cost.  1 CU � 1 second of engine CPU time.
     breakdown : dict
         Per-component cost breakdown with keys:
         ``'base'``, ``'depth_surcharge'``, ``'shots'``, ``'mode_multiplier'``.
@@ -246,16 +229,16 @@ def _compute_cu_estimate(
     """Compute a CostEstimate for the given circuit parameters (pure function)."""
     chi = bond_dim if bond_dim is not None else _DEFAULT_BOND_DIM
     multiplier = _MODE_MULTIPLIER.get(mode, _MODE_MULTIPLIER.get(
-        _MODE_MAP.get(mode, ""), 1.5
+        mode, 1.5
     ))
 
     n_2q = sum(1 for g in gates if len(g.get("qubits", [])) >= 2)
 
     if mode in _SV_MODES or n_qubits <= 20:
-        # Statevector kernel: O(2^N × G)
+        # Statevector kernel: O(2^N � G)
         surcharge = _K_SV * (2 ** min(n_qubits, 30)) * max(n_2q, 1)
     else:
-        # MPS kernel: O(N × χ³ × G)
+        # MPS kernel: O(N � ?� � G)
         surcharge = _K_MPS * n_qubits * (chi ** 3) * max(n_2q, 1)
 
     base = _BASE_CU
@@ -306,7 +289,7 @@ class CircuitResult:
     classification and entanglement regime diagnostics."""
 
     f_Q_density: Optional[float] = None
-    """Quantum Fisher Information density (Tóth–Gühne 2012).
+    """Quantum Fisher Information density (T�th�G�hne 2012).
 
     ``f_Q > k`` certifies genuine ``(k+1)``-partite entanglement.
     Values above 1 indicate multi-partite entanglement; values above
@@ -324,18 +307,26 @@ class CircuitResult:
     predicted_tvd: Optional[float] = None
     """Predicted total variation distance (TVD) to the exact output distribution.
 
-    Model-based accuracy bound calibrated per KLT entanglement phase (Z1–Z5).
-    ``0.0`` for unconditionally exact modes (``'exact'``, ``'cluster'``).
+    Model-based accuracy bound calibrated per entanglement phase (Z1�Z5).
+    ``0.0`` for unconditionally exact modes (``'statevector'``, ``'cluster'``).
     Use this as a conservative upper bound on the simulation error."""
 
     phase_label: Optional[str] = None
-    """KLT entanglement-phase label (``'Z1'``–``'Z5'``).
+    """Entanglement-phase label (``'Z1'``�``'Z5'``).
 
     Indicates which Lorenz-family attractor regime the circuit's entanglement
     structure falls into.  Z1 is the lowest-entropy / most regular regime;
     Z5 is the Haar-random / maximal-entropy regime.
     ``None`` when the backend does not return this field."""
+    resolved_mode: Optional[str] = None
+    """The simulation mode actually used.  Populated when ``mode='auto'`` was
+    requested; equals the requested mode for all explicit mode selections."""
 
+    preflight_report: Optional[Dict] = None
+    """Routing diagnostics returned when ``mode='auto'`` was used.
+    Contains: ``d_ky``, ``entanglement_regime``, ``reasoning``, ``is_tree``,
+    ``edge_density``, ``d_s``, ``n_2q_gates``, ``n_t_gates``,
+    ``ky_gp_consistent``."""
     @property
     def most_probable(self) -> str:
         """Most probable measurement outcome bitstring."""
@@ -364,7 +355,7 @@ class CircuitEngine:
     mode : str, optional
         Execution mode.  See :class:`CircuitClient` for available modes.
     bond_dim : int, optional
-        Bond-dimension cap for ``'tensor'`` mode.
+        Bond-dimension cap for ``'mps'`` mode.
 
     Examples
     --------
@@ -386,7 +377,7 @@ class CircuitEngine:
         self,
         client: "CircuitClient",
         n_qubits: int,
-        mode: str = "auto",
+        mode: str = "mps",
         bond_dim: Optional[int] = None,
     ) -> None:
         self._client = client
@@ -444,20 +435,20 @@ class CircuitEngine:
         Check the circuit against published tier depth limits client-side.
 
         Raises ``ValueError`` with a descriptive message if the circuit
-        exceeds the limit for its qubit count and mode — no API call is made.
+        exceeds the limit for its qubit count and mode � no API call is made.
         Does nothing if the circuit is within limits.
 
         Examples
         --------
         ::
 
-            eng = client.circuit.engine(n_qubits=1000, mode="auto")
+            eng = client.circuit.engine(n_qubits=1000, mode="mps")
             for i in range(0, 1000, 2):
                 eng.apply("h", i).apply("cx", [i, i + 1])
             eng.validate()   # passes (depth 1, limit 7 for N=1000)
 
             # Exceeds tier limit:
-            deep_eng = client.circuit.engine(n_qubits=200, mode="auto")
+            deep_eng = client.circuit.engine(n_qubits=200, mode="mps")
             for _ in range(10):
                 for i in range(0, 200, 2):
                     deep_eng.apply("cx", [i, i + 1])
@@ -473,7 +464,7 @@ class CircuitEngine:
         """
         Estimate the compute-unit (CU) cost of submitting this circuit.
 
-        Purely client-side — no API call is made.  The estimate is based on
+        Purely client-side � no API call is made.  The estimate is based on
         the gates accumulated so far, the current :attr:`mode`, and
         ``shots``.
 
@@ -486,14 +477,14 @@ class CircuitEngine:
         Returns
         -------
         CostEstimate
-            ``total_cu`` is the estimated cost in compute units (1 CU ≈ 1 s
+            ``total_cu`` is the estimated cost in compute units (1 CU � 1 s
             of engine CPU time).  ``breakdown`` shows the per-component split.
 
         Examples
         --------
         ::
 
-            eng = client.circuit.engine(n_qubits=20, mode='exact')
+            eng = client.circuit.engine(n_qubits=20, mode='statevector')
             for i in range(0, 20, 2):
                 eng.apply('cx', [i, i + 1])
             est = eng.estimated_cost(shots=4096)
@@ -623,12 +614,11 @@ class CircuitClient(_BaseClient):
 
     Execution modes
     ---------------
-    ``'auto'``         Server selects the optimal backend automatically.
-    ``'exact'``        Full statevector simulation. Correct for any circuit.
+    ``'statevector'``  Full statevector simulation. Correct for any circuit.
                        Practical for N <= ~25 qubits.
-    ``'compressed'``   Compressed representation. Efficient for large N
+    ``'cluster_mps'``  Compressed representation. Efficient for large N
                        with low-to-moderate entanglement (VQE, QAOA, chemistry).
-    ``'tensor'``       Tensor-network backend. Efficient for 1D and shallow
+    ``'mps'``          Tensor-network backend. Efficient for 1D and shallow
                        circuits. Supports N > 50 at tunable fidelity.
     ``'hamiltonian'``  Direct Hamiltonian evolution. Use
                        :meth:`CircuitEngine.evolve_hamiltonian`; does not
@@ -641,7 +631,7 @@ class CircuitClient(_BaseClient):
     def engine(
         self,
         n_qubits: int,
-        mode: str = "auto",
+        mode: str = "mps",
         bond_dim: Optional[int] = None,
     ) -> "Union[CircuitEngine, Any]":
         """
@@ -655,7 +645,7 @@ class CircuitClient(_BaseClient):
             Use ``'local'`` to get a :class:`~qumulator.local.LocalStatevectorEngine`
             for in-process simulation without an API call.
         bond_dim : int, optional
-            Bond-dimension cap for ``'tensor'`` mode.
+            Bond-dimension cap for ``'mps'`` mode.
         """
         if mode == "local":
             from qumulator.local import LocalStatevectorEngine
@@ -666,7 +656,7 @@ class CircuitClient(_BaseClient):
         self,
         gates: Union[List[Dict], List[Tuple]],
         n_qubits: int,
-        mode: str = "auto",
+        mode: str = "mps",
         bond_dim: Optional[int] = None,
         shots: int = 1024,
         seed: Optional[int] = None,
@@ -706,7 +696,7 @@ class CircuitClient(_BaseClient):
         qasm_source: str,
         shots: int = 1024,
         seed: Optional[int] = None,
-        mode: str = "auto",
+        mode: str = "mps",
         bond_dim: Optional[int] = None,
     ) -> "CircuitResult":
         """
@@ -723,9 +713,9 @@ class CircuitClient(_BaseClient):
         mode : str, optional
             Execution mode hint.
         bond_dim : int, optional
-            Bond-dimension cap for ``'tensor'`` mode.
+            Bond-dimension cap for ``'mps'`` mode.
         """
-        backend_mode = _MODE_MAP.get(mode, mode)
+        backend_mode = mode
         body: Dict[str, Any] = {
             "qasm":  qasm_source,
             "shots": shots,
@@ -778,6 +768,8 @@ class CircuitClient(_BaseClient):
             entanglement_depth=result.get("entanglement_depth"),
             predicted_tvd=result.get("predicted_tvd"),
             phase_label=result.get("phase_label"),
+            resolved_mode=result.get("resolved_mode"),
+            preflight_report=result.get("preflight_report"),
         )
 
     def estimate_cost(
@@ -785,13 +777,13 @@ class CircuitClient(_BaseClient):
         gates: Union[List[Dict], List[Tuple]],
         n_qubits: int,
         shots: int = 1024,
-        mode: str = "auto",
+        mode: str = "mps",
         bond_dim: Optional[int] = None,
     ) -> CostEstimate:
         """
         Estimate the compute-unit (CU) cost of a circuit without submitting it.
 
-        Purely client-side — no API call is made.
+        Purely client-side � no API call is made.
 
         Parameters
         ----------
@@ -802,14 +794,14 @@ class CircuitClient(_BaseClient):
         shots : int
             Number of measurement samples to assume.  Default ``1024``.
         mode : str
-            Execution mode.  Default ``'auto'``.
+            Execution mode.  Default ``'mps'``.
         bond_dim : int, optional
             Bond-dimension cap assumed for MPS modes.
 
         Returns
         -------
         CostEstimate
-            ``total_cu`` is the estimated cost (1 CU ≈ 1 s of engine CPU).
+            ``total_cu`` is the estimated cost (1 CU � 1 s of engine CPU).
             ``breakdown`` contains per-component costs.
 
         Examples
@@ -826,10 +818,68 @@ class CircuitClient(_BaseClient):
         normalised = _normalise_gate_list(gates)
         return _compute_cu_estimate(n_qubits, normalised, mode, bond_dim, shots)
 
+    def preflight(self, qasm_source: str) -> Dict[str, Any]:
+        """
+        Zero-cost circuit pre-flight analysis (no simulation, no CU cost).
+
+        Analyses the QASM circuit, builds the entanglement graph, estimates
+        the Kaplan-Yorke dimension D_KY, and returns the recommended
+        simulation mode — without running any simulation.
+
+        Parameters
+        ----------
+        qasm_source : str
+            OpenQASM 2 or 3 source code.
+
+        Returns
+        -------
+        dict
+            Keys: ``recommended_mode``, ``reasoning``, ``d_ky``,
+            ``entanglement_regime``, ``d_s``, ``is_tree``, ``edge_density``,
+            ``n_2q_gates``, ``n_t_gates``, ``ky_gp_consistent``.
+
+        Examples
+        --------
+        ::
+
+            report = client.circuit.preflight(qasm_source)
+            print(report["recommended_mode"])   # e.g. 'mps'
+            print(report["reasoning"])
+        """
+        return self._post("/circuits/preflight", {"qasm": qasm_source})
+
+    def preflight_instructions(
+        self,
+        n_qubits: int,
+        gates: Union[List[Dict], List[Tuple]],
+    ) -> Dict[str, Any]:
+        """
+        Zero-cost pre-flight analysis for a gate-instruction circuit.
+
+        Same as :meth:`preflight` but accepts a gate list instead of QASM.
+
+        Parameters
+        ----------
+        n_qubits : int
+        gates : list
+            Gate list in dict or tuple format (same as :meth:`run`).
+
+        Returns
+        -------
+        dict
+            Same keys as :meth:`preflight`.
+        """
+        normalised = _normalise_gate_list(gates)
+        instructions = [_gate_to_instruction(g) for g in normalised]
+        return self._post("/circuits/preflight", {
+            "n_qubits": n_qubits,
+            "instructions": instructions,
+        })
+
     def _execute(self, **kwargs: Any) -> CircuitResult:
-        # Resolve mode: map user alias → backend internal name.
-        raw_mode = kwargs.get("mode", "auto")
-        backend_mode = _MODE_MAP.get(raw_mode, raw_mode)
+        # Resolve mode: map user alias ? backend internal name.
+        raw_mode = kwargs.get("mode", "mps")
+        backend_mode = raw_mode
 
         gates        = kwargs.get("gates", [])
         n_qubits     = kwargs.get("n_qubits")
@@ -898,6 +948,8 @@ class CircuitClient(_BaseClient):
             entanglement_depth=result.get("entanglement_depth"),
             predicted_tvd=result.get("predicted_tvd"),
             phase_label=result.get("phase_label"),
+            resolved_mode=result.get("resolved_mode"),
+            preflight_report=result.get("preflight_report"),
         )
 
 

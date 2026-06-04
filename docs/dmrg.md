@@ -8,7 +8,7 @@ systematically approaches the exact ground state as bond dimension d_max increas
 At d_max = 64 it is **exact (machine precision) for n_orb ≤ 6**.
 
 For larger active spaces (n_orb > 30) or multi-fragment molecules, use
-[GMPS/MPO](molecular-gmps.md) instead.
+[MPS/MPO](molecular-mps.md) instead.
 
 ---
 
@@ -76,9 +76,9 @@ If `converged=False`, increase `d_max` or `n_sweeps` and resubmit.
 
 ---
 
-## DMRG vs GMPS/MPO
+## DMRG vs MPS/MPO
 
-| Criterion | DMRG (`client.dmrg`) | GMPS (`client.molecular`) |
+| Criterion | DMRG (`client.dmrg`) | MPS (`client.molecular`) |
 |---|---|---|
 | Active space size | ≤ 30 orbitals | ≤ 50 orbitals |
 | Correlation type | 1D-like chains | Multi-fragment / branched |
@@ -129,5 +129,5 @@ If `converged=False`, increase `d_max` or `n_sweeps` and resubmit.
 
 ## See also
 
-- [GMPS/MPO Molecular Energy](molecular-gmps.md) — larger active spaces, multi-fragment
+- [MPS/MPO Molecular Energy](molecular-mps.md) — larger active spaces, multi-fragment
 - [Molecular Orbitals (HOMO/LUMO)](molecular.md) — DFT frontier orbital energies from SMILES

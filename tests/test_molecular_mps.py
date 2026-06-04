@@ -1,5 +1,5 @@
 """
-Unit tests for MolecularClient (GMPS/MPO engine).
+Unit tests for MolecularClient (MPS/MPO engine).
 
 No live API required — all HTTP calls are intercepted by respx.
 Verifies:
@@ -7,7 +7,7 @@ Verifies:
   2. Response correctly deserialised into MolecularEnergyResult.
   3. Optional fields (circuit, zz_correlators) handled properly.
   4. HTTP errors surface as QumulatorHTTPError.
-Run with:  pytest sdk/tests/test_molecular_gmps.py -v
+Run with:  pytest sdk/tests/test_molecular_mps.py -v
 """
 from __future__ import annotations
 

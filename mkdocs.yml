@@ -29,22 +29,25 @@ theme:
 nav:
   - Getting Started:
       - Quickstart: index.md
-      - Authentication: authentication.md
-  - Python SDK:
       - Installation: install.md
-      - Circuit Simulation: circuit.md
-      - Cost Estimator: cost-estimator.md
-      - OpenQASM Input: qasm.md
+      - Authentication: authentication.md
+  - Quantum Simulation:
+      - Circuits & Gates: circuit.md
+      - OpenQASM: qasm.md
       - Simulation Modes: modes.md
-      - Time Evolution (TEBD): evolve.md
+      - Cost Estimator: cost-estimator.md
       - Qiskit Integration: qiskit.md
       - Cirq Integration: cirq.md
-      - Spin Ground States: spin.md
-      - Photonic Amplitudes: photonics.md
-      - Molecular Orbitals (HOMO/LUMO): molecular.md
-      - Molecular Energy (GMPS/MPO): molecular-gmps.md
+  - Molecular Chemistry:
+      - Frontier Orbitals (HOMO/LUMO): molecular.md
+      - MPS/MPO Ground-State Energy: molecular-mps.md
       - DMRG Ground-State Energy: dmrg.md
-      - Notebooks: notebooks.md
+  - Condensed Matter:
+      - Spin Ground States: spin.md
+      - Time Evolution (TEBD): evolve.md
+  - Photonic Computing:
+      - Hafnian & GBS Amplitudes: photonics.md
+  - Notebooks: notebooks.md
   - REST API:
       - API Keys: rest-keys.md
       - Circuits: rest-circuits.md

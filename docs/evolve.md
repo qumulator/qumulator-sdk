@@ -76,7 +76,7 @@ revival = client.evolve.quench(n_qubits=20, h=2.0, t_max=10.0)
 | `"ising_1d"` | Transverse-field Ising chain | `J`, `h` |
 | `"xx_model"` | XX free-fermion chain | `t` |
 | `"heisenberg"` | XXX Heisenberg chain | `J` |
-| `"kuramoto_ising"` | KLT H_KLT (DM coupling) | `J`, `K` |
+| `"kuramoto_ising"` | Hamiltonian (DM coupling) | `J`, `K` |
 
 Custom Pauli-sum Hamiltonians are also supported via `terms`: each term is
 `{"sites": [i, j], "operator": "ZZ", "strength": -1.0}`.

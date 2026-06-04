@@ -13,7 +13,7 @@ Call `estimated_cost()` on a `CircuitEngine` at any point to get a cost estimate
 on the gates accumulated so far.
 
 ```python
-eng = client.circuit.engine(n_qubits=20, mode='exact')
+eng = client.circuit.engine(n_qubits=20, mode='statevector')
 for i in range(0, 20, 2):
     eng.apply('cx', [i, i + 1])
 
@@ -99,11 +99,11 @@ client.circuit.estimate_cost(gates_tuple + gates_dict, n_qubits=2)
 
 The estimator uses two formulae, selected by mode and qubit count:
 
-**Statevector** (`mode='exact'`, or any mode with N ≤ 20):
+**Statevector** (`mode='statevector'`, or any mode with N ≤ 20):
 
 $$\text{CU} = (C_\text{base} + k_\text{sv} \cdot 2^N \cdot G) \times m + s \cdot \text{shots}$$
 
-**MPS / tensor-network** (N > 20, `mode='auto'` / `'tensor'` / `'compressed'`):
+**MPS** (N > 20, `mode='mps'` / `'cluster_mps'`):
 
 $$\text{CU} = (C_\text{base} + k_\text{mps} \cdot N \cdot \chi^3 \cdot G) \times m + s \cdot \text{shots}$$
 
@@ -123,10 +123,10 @@ Where:
 
 | Mode | Multiplier |
 |---|---|
-| `'exact'` / `'gaussian'` | 1.0× |
-| `'compressed'` / `'auto'` / `'hamiltonian'` | 1.5× |
-| `'tensor'` | 2.0× |
-| `'cluster'` | 3.0× |
+| `'statevector'` / `'gaussian'` | 1.0× |
+| `'cluster_mps'` / `'hamiltonian'` | 1.5× |
+| `'mps'` | 2.0× |
+| `'cluster_statevector'` | 3.0× |
 | `'greens'` | 1.2× |
 | `'local'` | 0.0× (no server billing) |
 
@@ -151,18 +151,18 @@ The constants above are fit to these observed benchmark results:
 ## Example: compare modes before submitting
 
 ```python
-eng = client.circuit.engine(n_qubits=54, mode='auto')
+eng = client.circuit.engine(n_qubits=54, mode='mps')
 for depth in range(6):
     for i in range(0, 53, 2):
         eng.apply('cx', [i, i + 1])
 
-for mode in ('exact', 'compressed', 'tensor', 'cluster'):
+for mode in ('statevector', 'cluster_mps', 'mps', 'cluster_statevector'):
     eng.mode = mode
     est = eng.estimated_cost(shots=2048)
-    print(f"  {mode:12s}: {est.total_cu:6.2f} CU")
+    print(f"  {mode:22s}: {est.total_cu:6.2f} CU")
 
-# exact       :  58.31 CU
-# compressed  :  87.46 CU
-# tensor      : 116.62 CU
-# cluster     : 174.93 CU
+# statevector           :  58.31 CU
+# cluster_mps           :  87.46 CU
+# mps                   : 116.62 CU
+# cluster_statevector   : 174.93 CU
 ```

@@ -1,7 +1,7 @@
-# Molecular Energy — GMPS/MPO
+# Molecular Energy — MPS/MPO
 
-Compute the exact ground-state energy of a molecular active space using
-**Exact Geometric MPS (GMPS) with a Matrix Product Operator (MPO) Hamiltonian**.
+Compute the ground-state energy of a molecular active space using
+**Matrix Product State / Matrix Product Operator (MPS/MPO)**.
 
 This endpoint accepts 1-electron and 2-electron integrals from any quantum
 chemistry package (PySCF, ORCA, Gaussian) and evaluates ⟨ψ|H|ψ⟩ + e_nuc.
@@ -35,7 +35,7 @@ h1e, e_core = mc.get_h1eff()
 h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
 e_nuc = mc.energy_nuc() + e_core
 
-# ── GMPS energy (Hartree-Fock reference, no circuit) ─────────────────────
+# ── MPS energy (Hartree-Fock reference, no circuit) ──────────────────────
 result = client.molecular.energy(
     h1e=h1e.tolist(),
     h2e=h2e.tolist(),
@@ -66,7 +66,7 @@ result = client.molecular.energy(
         {"qi": 1, "qj": 3, "theta": 0.15},
     ],
 )
-print(f"E(GMPS) = {result.energy:.8f} Ha")
+print(f"E(MPS) = {result.energy:.8f} Ha")
 ```
 
 **Qubit convention (Jordan-Wigner)**:
@@ -86,7 +86,7 @@ result = client.molecular.energy(
     e_nuc=e_nuc,
     circuit=givens_gates,  # Givens circuit from VQE-style optimizer
 )
-print(f"E(GMPS/aspirin) = {result.energy:.6f} Ha")
+print(f"E(MPS/aspirin) = {result.energy:.6f} Ha")
 print(f"ZZ correlators: {result.zz_correlators}")
 ```
 
@@ -99,7 +99,7 @@ print(f"ZZ correlators: {result.zz_correlators}")
 | `energy` | `float` | Total energy including e_nuc (Ha) |
 | `n_qubits` | `int` | 2 × n_orb spin-orbital qubits |
 | `n_orb` | `int` | Active molecular orbitals |
-| `n_components` | `int` | Number of GMPS fragments discovered |
+| `n_components` | `int` | Number of MPS fragment components discovered |
 | `zz_correlators` | `list[list[float]]` or `None` | ⟨ZᵢZⱼ⟩ correlator matrix |
 
 ---

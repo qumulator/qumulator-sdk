@@ -1,5 +1,5 @@
-﻿"""
-Qumulator SDK â€” quantum computing API client.
+"""
+Qumulator SDK — quantum computing API client.
 
 Usage
 -----
@@ -28,7 +28,7 @@ Usage
     # --- Energy optimization ---
     import numpy as np
     J = np.random.randn(8, 8); J = (J + J.T) / 2
-    energy = client.klt.run(J.tolist())
+    energy = client.hamiltonian.run(J.tolist())
     print(energy.energy)
 
     # --- Hafnian ---
@@ -55,11 +55,11 @@ Usage
 
     # --- QKZM quench ---
     q = client.evolve.qkzm(n_qubits=20, J=1.0, h0=5.0, h_f=0.2, t_ramp=5.0)
-    print(q.kzm_defect_density)   # n_d ∝ τ_Q^{-1/2}
+    print(q.kzm_defect_density)   # n_d ? t_Q^{-1/2}
 
     # --- Multi-asset 2D lattice ---
     lat = client.evolve.lattice(n_rows=4, n_cols=4)
-    print(lat.bond_entropy_2d)    # 4×4 entanglement heatmap
+    print(lat.bond_entropy_2d)    # 4x4 entanglement heatmap
 """
 
 from qumulator._http import QumulatorHTTPError
@@ -76,7 +76,7 @@ from qumulator.models import (
     HamiltonianTerm,
     HomoResult,
     JobStatus,
-    KLTResult,
+    SpinGroundStateResult,
     LatticeResult,
     MolecularEnergyResult,
     QKZMResult,
@@ -86,7 +86,7 @@ from qumulator.resources import (
     EvolveClient,
     HafnianClient,
     HomoClient,
-    KLTClient,
+    HamiltonianClient,
     MolecularClient,
     NotebookClient,
 )
@@ -112,7 +112,7 @@ class QumulatorClient:
         Quantum circuit simulation.
     homo : HomoClient
         DFT HOMO/LUMO energy calculations.
-    klt : KLTClient
+    hamiltonian : HamiltonianClient
         Ground-state energy optimization.
     hafnian : HafnianClient
         Hafnian estimation for Gaussian boson sampling.
@@ -129,7 +129,7 @@ class QumulatorClient:
             api_key = os.environ.get("QUMULATOR_API_KEY", "")
         self.circuit  = CircuitClient(api_url, api_key)
         self.homo     = HomoClient(api_url, api_key)
-        self.klt      = KLTClient(api_url, api_key)
+        self.hamiltonian      = HamiltonianClient(api_url, api_key)
         self.hafnian  = HafnianClient(api_url, api_key)
         self.notebook = NotebookClient(api_url, api_key)
         self.evolve   = EvolveClient(api_url, api_key)
@@ -148,7 +148,7 @@ __all__ = [
     "LocalStatevectorEngine",
     # Sub-clients
     "HomoClient",
-    "KLTClient",
+    "HamiltonianClient",
     "HafnianClient",
     "NotebookClient",
     "EvolveClient",
@@ -156,7 +156,7 @@ __all__ = [
     "DMRGClient",
     # Result models
     "HomoResult",
-    "KLTResult",
+    "SpinGroundStateResult",
     "HafnianResult",
     "GaussianCertificate",
     "JobStatus",

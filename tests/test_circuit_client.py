@@ -16,7 +16,6 @@ import respx
 from qumulator import QumulatorClient, CircuitResult
 from qumulator.circuit import CircuitClient, CircuitEngine, _normalise_gate_list, _gate_to_instruction
 
-
 # ---------------------------------------------------------------------------
 #  Fixtures
 # ---------------------------------------------------------------------------
@@ -182,7 +181,7 @@ class TestCircuitClientRun:
         client.run(
             gates=[("h", 0)],
             n_qubits=2,
-            mode="exact",
+            mode="statevector",
             shots=512,
         )
         assert captured["n_qubits"] == 2
@@ -270,7 +269,7 @@ class TestQumulatorClient:
     def test_attributes_exist(self, qclient):
         assert hasattr(qclient, "circuit")
         assert hasattr(qclient, "homo")
-        assert hasattr(qclient, "klt")
+        assert hasattr(qclient, "hamiltonian")
         assert hasattr(qclient, "hafnian")
         assert hasattr(qclient, "notebook")
 
@@ -436,3 +435,182 @@ class TestStatevectorParsing:
         assert result.statevector is not None
         assert result.statevector.shape == (4,)
         assert math.isclose(result.statevector[0].real, s, abs_tol=1e-10)
+
+
+# ---------------------------------------------------------------------------
+#  Auto-mode — resolved_mode / preflight_report
+# ---------------------------------------------------------------------------
+
+_PREFLIGHT_REPORT = {
+    "d_ky": None,
+    "entanglement_regime": None,
+    "d_s": None,
+    "is_tree": True,
+    "edge_density": 0.5,
+    "n_2q_gates": 1,
+    "n_t_gates": 0,
+    "ky_gp_consistent": None,
+    "reasoning": "Entanglement graph is a tree; routed to mps.",
+}
+
+
+class TestAutoMode:
+    """Verify that mode='auto' flows are correctly deserialised."""
+
+    def _make_client(self) -> CircuitClient:
+        return CircuitClient(api_url=API_URL, api_key=API_KEY)
+
+    def _auto_result_response(self, resolved_mode: str, report: dict) -> dict:
+        base = dict(_RESULT_RESPONSE)
+        base["result"] = {
+            **base["result"],
+            "resolved_mode": resolved_mode,
+            "preflight_report": report,
+        }
+        return base
+
+    @respx.mock
+    def test_auto_mode_bell_state(self):
+        """
+        2-qubit Bell circuit with mode='auto': expect resolved_mode=='statevector'
+        and preflight_report propagated into CircuitResult.
+        """
+        report = {**_PREFLIGHT_REPORT, "reasoning": "N<=20 with T-gates; routed to statevector."}
+        respx.post(f"{API_URL}/circuits").mock(
+            return_value=httpx.Response(202, json=_SUBMIT_RESPONSE)
+        )
+        respx.get(f"{API_URL}/circuits/test-job-01").mock(
+            return_value=httpx.Response(
+                200,
+                json=self._auto_result_response("statevector", report),
+            )
+        )
+        result = self._make_client().run(
+            gates=[("h", 0), ("cx", [0, 1])],
+            n_qubits=2,
+            mode="auto",
+        )
+        assert result.resolved_mode == "statevector"
+        assert result.preflight_report is not None
+        assert "reasoning" in result.preflight_report
+        assert "d_ky" in result.preflight_report
+
+    @respx.mock
+    def test_auto_mode_large_chain(self):
+        """
+        20-qubit chain circuit (tree topology): expect resolved_mode in {mps, cluster_mps}
+        and is_tree==True in preflight_report.
+        """
+        report = {
+            **_PREFLIGHT_REPORT,
+            "is_tree": True,
+            "n_2q_gates": 19,
+            "d_ky": 2.07,
+            "entanglement_regime": "area_law",
+            "reasoning": "Entanglement graph is a tree; routed to mps.",
+        }
+        respx.post(f"{API_URL}/circuits").mock(
+            return_value=httpx.Response(202, json=_SUBMIT_RESPONSE)
+        )
+        respx.get(f"{API_URL}/circuits/test-job-01").mock(
+            return_value=httpx.Response(
+                200,
+                json=self._auto_result_response("mps", report),
+            )
+        )
+
+        gates = [("cx", [i, i + 1]) for i in range(19)] + [("t", i) for i in range(19)]
+        result = self._make_client().run(gates=gates, n_qubits=20, mode="auto")
+
+        assert result.resolved_mode in {"mps", "cluster_mps"}
+        assert result.preflight_report is not None
+        assert result.preflight_report["is_tree"] is True
+
+    @respx.mock
+    def test_auto_mode_no_report_when_explicit_mode(self):
+        """When an explicit mode is given, resolved_mode and preflight_report are None."""
+        respx.post(f"{API_URL}/circuits").mock(
+            return_value=httpx.Response(202, json=_SUBMIT_RESPONSE)
+        )
+        respx.get(f"{API_URL}/circuits/test-job-01").mock(
+            return_value=httpx.Response(200, json=_RESULT_RESPONSE)
+        )
+        result = self._make_client().run(
+            gates=[("h", 0), ("cx", [0, 1])],
+            n_qubits=2,
+            mode="statevector",
+        )
+        assert result.resolved_mode is None
+        assert result.preflight_report is None
+
+
+# ---------------------------------------------------------------------------
+#  Preflight endpoint
+# ---------------------------------------------------------------------------
+
+_PREFLIGHT_ENDPOINT_RESPONSE = {
+    "n_qubits": 2,
+    "recommended_mode": "statevector",
+    "reasoning": "N<=20 with no volume-law entanglement; statevector exact.",
+    "d_ky": None,
+    "entanglement_regime": None,
+    "d_s": None,
+    "is_tree": True,
+    "edge_density": 0.5,
+    "n_2q_gates": 1,
+    "n_t_gates": 0,
+    "ky_gp_consistent": None,
+}
+
+_BELL_QASM = (
+    'OPENQASM 3.0; include "stdgates.inc"; '
+    "qubit[2] q; h q[0]; cx q[0],q[1]; bit[2] c; measure q->c;"
+)
+
+
+class TestPreflightEndpoint:
+    """Verify CircuitClient.preflight() sends the correct payload and returns the dict."""
+
+    def _make_client(self) -> CircuitClient:
+        return CircuitClient(api_url=API_URL, api_key=API_KEY)
+
+    @respx.mock
+    def test_preflight_sends_qasm(self):
+        """preflight() posts to /circuits/preflight with {qasm: ...}."""
+        route = respx.post(f"{API_URL}/circuits/preflight").mock(
+            return_value=httpx.Response(200, json=_PREFLIGHT_ENDPOINT_RESPONSE)
+        )
+        result = self._make_client().preflight(_BELL_QASM)
+        assert route.called
+        payload = route.calls[0].request
+        import json
+        body = json.loads(payload.content)
+        assert body["qasm"] == _BELL_QASM
+
+    @respx.mock
+    def test_preflight_returns_recommendation(self):
+        """preflight() response contains recommended_mode, reasoning, d_ky."""
+        respx.post(f"{API_URL}/circuits/preflight").mock(
+            return_value=httpx.Response(200, json=_PREFLIGHT_ENDPOINT_RESPONSE)
+        )
+        report = self._make_client().preflight(_BELL_QASM)
+        assert "recommended_mode" in report
+        assert "reasoning" in report
+        assert "d_ky" in report
+
+    @respx.mock
+    def test_preflight_instructions_sends_gates(self):
+        """preflight_instructions() posts n_qubits + instructions to /circuits/preflight."""
+        route = respx.post(f"{API_URL}/circuits/preflight").mock(
+            return_value=httpx.Response(200, json=_PREFLIGHT_ENDPOINT_RESPONSE)
+        )
+        self._make_client().preflight_instructions(
+            n_qubits=2,
+            gates=[("h", 0), ("cx", [0, 1])],
+        )
+        assert route.called
+        import json
+        body = json.loads(route.calls[0].request.content)
+        assert body["n_qubits"] == 2
+        assert isinstance(body["instructions"], list)
+        assert len(body["instructions"]) == 2

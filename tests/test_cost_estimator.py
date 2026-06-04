@@ -56,10 +56,10 @@ class TestCostEstimateFields:
         assert abs(components - est.total_cu) < 1e-4
 
     def test_mode_multiplier_stored(self):
-        exact_est = _bell_engine(mode="exact").estimated_cost()
+        exact_est = _bell_engine(mode="statevector").estimated_cost()
         assert exact_est.breakdown["mode_multiplier"] == 1.0
 
-        tensor_est = _bell_engine(mode="tensor").estimated_cost()
+        tensor_est = _bell_engine(mode="mps").estimated_cost()
         assert tensor_est.breakdown["mode_multiplier"] == 2.0
 
 
@@ -69,10 +69,10 @@ class TestCostEstimateFields:
 
 class TestCostScaling:
     def test_more_gates_costs_more(self):
-        small = _mock_engine(5, mode="exact")
+        small = _mock_engine(5, mode="statevector")
         small.apply("h", 0).apply("cx", [0, 1])
 
-        large = _mock_engine(5, mode="exact")
+        large = _mock_engine(5, mode="statevector")
         large.apply("h", 0).apply("cx", [0, 1])
         for i in range(10):
             large.apply("cx", [i % 5, (i + 1) % 5])
@@ -81,8 +81,8 @@ class TestCostScaling:
 
     def test_more_qubits_costs_more_sv(self):
         # statevector cost grows as 2^N
-        small = _mock_engine(5, mode="exact")
-        large = _mock_engine(15, mode="exact")
+        small = _mock_engine(5, mode="statevector")
+        large = _mock_engine(15, mode="statevector")
         for eng in (small, large):
             eng.apply("h", 0).apply("cx", [0, 1])
 
@@ -94,9 +94,9 @@ class TestCostScaling:
         high = eng.estimated_cost(shots=100_000)
         assert high.total_cu > low.total_cu
 
-    def test_mode_tensor_costs_more_than_exact(self):
-        exact = _bell_engine(mode="exact")
-        tensor = _bell_engine(mode="tensor")
+    def test_mps_costs_more_than_statevector(self):
+        exact = _bell_engine(mode="statevector")
+        tensor = _bell_engine(mode="mps")
         assert tensor.estimated_cost().total_cu > exact.estimated_cost().total_cu
 
     def test_local_mode_zero(self):
@@ -118,7 +118,7 @@ class TestCalibration:
         Calibration point: 20-qubit depth-20 statevector ≈ 45 CU.
         Accept within factor-of-2 range [20, 90].
         """
-        eng = _mock_engine(20, mode="exact")
+        eng = _mock_engine(20, mode="statevector")
         # 20 entangling layers of ~10 cx gates each = 200 cx gates total
         for _ in range(20):
             for i in range(0, 20, 2):
@@ -138,7 +138,7 @@ class TestCalibration:
 
     def test_no_gates_returns_base_only(self):
         """Circuit with no gates still incurs base overhead."""
-        eng = _mock_engine(5, mode="exact")
+        eng = _mock_engine(5, mode="statevector")
         est = eng.estimated_cost(shots=0)
         # With 0 shots and no meaningful 2Q gates, only base (possibly multiplied) + surcharge for 1 gate
         assert est.total_cu > 0.0
@@ -175,8 +175,8 @@ class TestStandaloneEstimateCost:
     def test_mode_affects_cost(self):
         client = self._client()
         gates = [("h", 0), ("cx", [0, 1])]
-        exact = client.estimate_cost(gates, n_qubits=2, shots=1024, mode="exact")
-        tensor = client.estimate_cost(gates, n_qubits=2, shots=1024, mode="tensor")
+        exact = client.estimate_cost(gates, n_qubits=2, shots=1024, mode="statevector")
+        tensor = client.estimate_cost(gates, n_qubits=2, shots=1024, mode="mps")
         assert tensor.total_cu > exact.total_cu
 
     def test_bond_dim_affects_mps_cost(self):
@@ -184,8 +184,8 @@ class TestStandaloneEstimateCost:
         client = self._client()
         # Build a gate list with 2Q gates so surcharge is non-zero
         gates = [("cx", [i, i + 1]) for i in range(49)]  # 50q
-        low_chi = client.estimate_cost(gates, n_qubits=50, shots=1024, mode="tensor", bond_dim=8)
-        hi_chi  = client.estimate_cost(gates, n_qubits=50, shots=1024, mode="tensor", bond_dim=64)
+        low_chi = client.estimate_cost(gates, n_qubits=50, shots=1024, mode="mps", bond_dim=8)
+        hi_chi  = client.estimate_cost(gates, n_qubits=50, shots=1024, mode="mps", bond_dim=64)
         assert hi_chi.total_cu > low_chi.total_cu
 
 

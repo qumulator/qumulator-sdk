@@ -78,6 +78,41 @@ result = client.circuit.run(
 |---|---|---|---|
 | `n_qubits` | `int` | required | Number of qubits in the register |
 | `mode` | `str` | | Simulation mode. Default: `"auto"`. See [Simulation Modes](modes.md). |
+
+---
+
+## Auto-mode example
+
+Pass `mode="auto"` to let the engine choose the optimal backend for your circuit.
+The resolved mode and routing diagnostics are returned in the result:
+
+```python
+eng = client.circuit.engine(n_qubits=12, mode="auto")
+
+# 12-qubit GHZ-like circuit
+eng.apply('h', 0)
+for i in range(11):
+    eng.apply('cx', [i, i + 1])
+    eng.apply('t', i)          # non-Clifford gates force real routing
+
+result = eng.run(shots=2048, return_entropy_map=True)
+
+print(result.resolved_mode)                  # e.g. 'mps'
+print(result.preflight_report["d_ky"])       # e.g. 2.07
+print(result.preflight_report["reasoning"])  # 'Entanglement graph is a tree...'
+```
+
+### Preflight dry-run
+
+Inspect the routing decision before spending compute units:
+
+```python
+report = client.circuit.preflight(qasm_source)  # zero CU, no job created
+print(report["recommended_mode"])   # 'mps'
+print(report["reasoning"])          # one-line explanation
+print(report["d_ky"])               # Kaplan-Yorke dimension
+print(report["is_tree"])            # True for chain/star/tree topologies
+```
 | `bond_dim` | `int` | | Bond dimension cap for `"compressed"` and `"tensor"` modes |
 
 ---

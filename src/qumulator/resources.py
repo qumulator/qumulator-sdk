@@ -16,7 +16,7 @@ from qumulator.models import (
     HamiltonianSpec,
     HomoResult,
     JobStatus,
-    KLTResult,
+    SpinGroundStateResult,
     LatticeResult,
     MolecularEnergyResult,
     QKZMResult,
@@ -24,9 +24,9 @@ from qumulator.models import (
 
 
 class HomoClient(_BaseClient):
-    """DFT HOMO/LUMO calculations via B3LYP/STO-3G."""
+    """DFT HOMO/LUMO calculations via B3LYP/6-31G*."""
 
-    def submit(self, smiles: str, basis: str = "sto-3g", xc: str = "b3lyp") -> str:
+    def submit(self, smiles: str, basis: str = "6-31g*", xc: str = "b3lyp") -> str:
         """Submit a HOMO energy job. Returns job_id immediately."""
         data = self._post("/jobs/homo/energy", {"smiles": smiles, "basis": basis, "xc": xc})
         return data["job_id"]
@@ -34,7 +34,7 @@ class HomoClient(_BaseClient):
     def run(
         self,
         smiles: str,
-        basis: str = "sto-3g",
+        basis: str = "6-31g*",
         xc: str = "b3lyp",
         timeout: float = 600.0,
     ) -> HomoResult:
@@ -50,7 +50,7 @@ class HomoClient(_BaseClient):
         return HomoResult(**status.result)
 
 
-class KLTClient(_BaseClient):
+class HamiltonianClient(_BaseClient):
     """Ground-state energy solver for quantum spin systems and Hamiltonians."""
 
     def submit(
@@ -76,7 +76,7 @@ class KLTClient(_BaseClient):
             cluster_size=cluster_size,
             pauli_hamiltonian=pauli_hamiltonian,
         )
-        return self._post("/jobs/klt/relax", body)["job_id"]
+        return self._post("/jobs/hamiltonian/relax", body)["job_id"]
 
     def run(
         self,
@@ -90,9 +90,9 @@ class KLTClient(_BaseClient):
         cluster_size: int = 2,
         timeout: float = 300.0,
         pauli_hamiltonian: Optional[dict] = None,
-    ) -> KLTResult:
+    ) -> SpinGroundStateResult:
         """
-        Run KLT relaxation and return the ground-state energy and diagnostics.
+        Run Hamiltonian relaxation and return the ground-state energy and diagnostics.
 
         Parameters
         ----------
@@ -102,7 +102,7 @@ class KLTClient(_BaseClient):
 
             Example — H2 STO-3G (Jordan-Wigner, 2 qubits)::
 
-                result = client.klt.run(
+                result = client.hamiltonian.run(
                     pauli_hamiltonian={
                         "II": g0,   # constant (nuclear repulsion + core energy)
                         "ZI": g1,   # Z on qubit 0
@@ -133,11 +133,11 @@ class KLTClient(_BaseClient):
             cluster_size=cluster_size,
             pauli_hamiltonian=pauli_hamiltonian,
         )
-        status = self._submit_and_wait("/klt/relax", body, timeout=timeout)
+        status = self._submit_and_wait("/hamiltonian/relax", body, timeout=timeout)
         if not status.ok:
             raise QumulatorHTTPError(500, status.error or "Job failed")
         assert status.result is not None
-        return KLTResult(**status.result)
+        return SpinGroundStateResult(**status.result)
 
 
 class HafnianClient(_BaseClient):
@@ -632,7 +632,7 @@ class EvolveClient(_BaseClient):
             - ``max_bond_dim``:      2 (always, for exact VBS)
             - ``bond_entropy``:      all ≈ 1.000 bit
             - ``mean_bond_entropy``: ≈ 1.000 bit
-            - ``klt_labels``:        all ``"Z3"`` (cluster-entangled regime)
+            - ``phase_labels``:        all ``"Z3"`` (cluster-entangled regime)
             - ``string_order``:      e.g. ``{"O_string(0,9)": -0.4444}``
 
         Examples
@@ -684,7 +684,7 @@ class EvolveClient(_BaseClient):
 
 class MolecularClient(_BaseClient):
     """
-    Molecular active-space energy via Exact Geometric MPS (GMPS/MPO).
+    Molecular active-space energy via MPS/MPO.
 
     Computes ⟨ψ|H|ψ⟩ + e_nuc for a molecular active space given 1e/2e integrals
     and an optional Givens orbital-rotation circuit.  Supports up to 50 orbitals
@@ -706,7 +706,7 @@ class MolecularClient(_BaseClient):
             n_elec=[1, 1],
             e_nuc=0.7137539936,
         )
-        print(f"E(HF)  = {result.energy:.8f} Ha")   # −1.11734 Ha for STO-3G H2
+        print(f"E(MPS)  = {result.energy:.8f} Ha")   # −1.11734 Ha for STO-3G H2
 
         # Aspirin fragment — with Givens rotation circuit
         result = client.molecular.energy(
@@ -716,7 +716,7 @@ class MolecularClient(_BaseClient):
             e_nuc=e_nuc,
             circuit=[{"qi": 0, "qj": 2, "theta": 0.15}, ...],
         )
-        print(f"E(GMPS) = {result.energy:.8f} Ha")
+        print(f"E(MPS) = {result.energy:.8f} Ha")
     """
 
     def energy(
@@ -730,7 +730,7 @@ class MolecularClient(_BaseClient):
         timeout: float = 300.0,
     ) -> "MolecularEnergyResult":
         """
-        Compute exact molecular active-space energy via GMPS/MPO.
+        Compute molecular active-space energy via MPS/MPO.
 
         Parameters
         ----------

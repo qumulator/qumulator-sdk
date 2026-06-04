@@ -5,7 +5,77 @@ All notable changes to the Qumulator SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+> **A note on breaking changes in the upcoming release**
+>
+> During early development, several internal codenames crept into the public API
+> (`KLT`, `klt`, `Vortex`, `GMPS`, `GESS`, `Nexus`). These names meant something
+> internally but were opaque and confusing to anyone reading the code or docs for
+> the first time. Rather than carry that confusion forward to v1.0, we decided to
+> rename everything clearly while the SDK is still in beta and the user base is small.
+> We know breaking changes are painful — we kept the list tight and the new names
+> are straightforward. Please update to the latest version and replace the old names
+> using the table in the `[Unreleased]` section below.
+>
+> **`pip install --upgrade qumulator-sdk`**
+
+---
+
 ## [Unreleased]
+
+### Changed (Breaking — Renamed)
+
+- **`KLTClient`** renamed to **`HamiltonianClient`**; access via `client.hamiltonian` (was `client.klt`).
+- **`KLTResult`** renamed to **`SpinGroundStateResult`**.
+- **`AKLTResult.klt_labels`** renamed to **`AKLTResult.phase_labels`**.
+- Circuit mode strings renamed: `"exact"` → `"statevector"`, `"tensor"` → `"mps"`,
+  `"compressed"` → `"cluster_mps"`, `"cluster"` → `"cluster_statevector"`.
+
+### Added
+
+#### Auto-routing mode (`mode="auto"`) + Preflight API
+
+- **`mode="auto"`** — New first-class simulation mode. The engine analyses the circuit’s
+  entanglement graph, estimates the Kaplan–Yorke dimension (D_KY), and routes to the
+  optimal backend before simulation begins. Resolved mode and diagnostics are returned
+  in `CircuitResult.resolved_mode` and `CircuitResult.preflight_report`.
+
+- **`CircuitResult.resolved_mode`** (`Optional[str]`) — The mode actually used after
+  auto-routing. Populated for `mode="auto"` jobs; mirrors the requested mode for explicit
+  mode selections.
+
+- **`CircuitResult.preflight_report`** (`Optional[Dict]`) — Routing diagnostics for
+  `mode="auto"` jobs: `d_ky`, `entanglement_regime`, `reasoning`, `is_tree`,
+  `edge_density`, `d_s`, `n_2q_gates`, `n_t_gates`, `ky_gp_consistent`.
+
+- **`CircuitClient.preflight(qasm_source)`** — Zero-cost pre-flight analysis. Builds
+  the entanglement graph and returns the routing recommendation without running any
+  simulation. No compute units are deducted.
+
+- **`CircuitClient.preflight_instructions(n_qubits, gates)`** — Same as `preflight()`
+  but accepts a gate-instruction list instead of QASM.
+
+### Changed (Breaking — Round 2 Renamed)
+
+- Circuit mode `"cluster"` more precisely: `"cluster"` now refers to the O(N)
+  pair-product ClusterState backend; the exact-statevector-per-cluster engine uses
+  `"cluster_statevector"`. If you were using `mode="cluster"` expecting exact results,
+  switch to `mode="cluster_statevector"`.
+- Internal wire-protocol strings: all `klt_*` mode strings replaced with clean names.
+  These were never public SDK API but are documented here for completeness:
+  `"klt_phase"` → `"phase"`, `"klt_stone"` → `"hamiltonian"`, `"klt_mps"` → `"mps"`,
+  `"klt_cluster_mps"` → `"cluster_mps"`, `"klt_greens"` → `"greens"`,
+  `"klt_gaussian"` → `"gaussian"`, `"klt_matrix_engine"` / `"klt_t4"` → `"dyson"`.
+- Engine class `ExactClusterEngine` → `ClusterStatevectorEngine` (internal; not in public SDK).
+- Engine class `KitaevChainEngine` replaces `KLTKitaevChainEngine` (internal only).
+
+### Changed (Notebooks)
+
+- `molecular_gmps_quickstart.ipynb` renamed to `molecular_mps_quickstart.ipynb`.
+- `klt_cluster_demo.ipynb` renamed to `cluster_statevector_demo.ipynb`.
+- `klt_greens_demo.ipynb` renamed to `greens_demo.ipynb`.
+- `vortex_geometry.ipynb` renamed to `cluster_geometry.ipynb`.
 
 ### Added
 

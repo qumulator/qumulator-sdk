@@ -10,12 +10,38 @@
 
 ---
 
-## The Qumulator statevector engine is now open-source
+## ⚠️ Breaking changes in the next release — please read
 
-As of v0.4.0 the full statevector simulation core ships inside `qumulator-sdk` as
-`LocalStatevectorEngine`. Now you can run the statevector engine locally, with full source
-code. **No qubit limits** — the only ceiling is your own hardware. GPU acceleration (CuPy / JAX / PyTorch) is auto-detected at runtime with zero
-configuration. No API key. No account. No network.
+During early development, several internal codenames crept into the public API
+(`KLT`, `Vortex`, `GMPS`, `GESS`). These were opaque to anyone reading the code for
+the first time. Rather than carry that confusion into v1.0, we renamed everything
+clearly while the SDK is still in beta. The list is short, the new names are obvious,
+and this is the right time to do it.
+
+**Update now:** `pip install --upgrade qumulator-sdk`
+
+| Old name | New name | Where |
+|---|---|---|
+| `KLTClient` | `HamiltonianClient` | `from qumulator import HamiltonianClient` |
+| `client.klt` | `client.hamiltonian` | attribute on `QumulatorClient` |
+| `KLTResult` | `SpinGroundStateResult` | result model |
+| `AKLTResult.klt_labels` | `AKLTResult.phase_labels` | field name |
+| `mode="exact"` | `mode="statevector"` | `circuit.run()` |
+| `mode="tensor"` | `mode="mps"` | `circuit.run()` |
+| `mode="compressed"` | `mode="cluster_mps"` | `circuit.run()` |
+| `mode="cluster"` | `mode="cluster_statevector"` | `circuit.run()` |
+| `mode="auto"` | *(removed)* | use `mode="mps"` |
+
+Full details in [CHANGELOG.md](CHANGELOG.md). These changes affect the cloud API client only — `LocalStatevectorEngine` is unaffected.
+
+---
+
+## Local statevector engine (open-source, run locally)
+
+The full statevector simulation core ships inside `qumulator-sdk` as
+`LocalStatevectorEngine` — open-source, no API key, no account, no network.
+**No qubit limits**: the only ceiling is your own hardware. GPU acceleration
+(CuPy / JAX / PyTorch) is auto-detected at runtime.
 
 ```bash
 pip install qumulator-sdk          # CPU — unlimited qubits, pure NumPy
@@ -25,8 +51,7 @@ pip install "qumulator-sdk[gpu]"   # GPU — CuPy / JAX / PyTorch, auto-detected
 ```python
 from qumulator.local import LocalStatevectorEngine
 
-# Runs locally — as many qubits as your hardware supports
-eng = LocalStatevectorEngine(n_qubits=28)   # or 30, or 35 — no hard cap
+eng = LocalStatevectorEngine(n_qubits=28)   # no hard cap
 eng.apply('h', 0)
 for i in range(27):
     eng.apply('cx', [i, i + 1])
@@ -36,93 +61,22 @@ print(result.counts)       # GHZ measurement results
 print(result.entropy_map)  # per-qubit entanglement entropy
 ```
 
-For circuits beyond your local RAM at high entanglement, the cloud API routes to
-MPS / tensor-network / cluster backends that scale to 1,000 qubits on a standard CPU.
+For circuits beyond your local RAM, the cloud API routes to MPS / cluster backends
+that scale to 1,000 qubits on a standard CPU.
 
 ---
 
-## What is this?
+## What is Qumulator?
 
-Qumulator is a cloud API — and this is its Python client — for simulating quantum circuits,
-spin systems, photonic amplitudes, and molecular properties on standard classical hardware.
-It does not require a quantum computer, a GPU, or any special hardware. It runs in the cloud
-(Google Cloud Run, 4 vCPU, 16 GB RAM) and returns results over HTTP.
-
-The key numbers: a **1,000-qubit circuit** at depth 3 runs in under **1 second** using **1 MB of memory**
-— where the equivalent statevector would require $2^{1000}$ bytes (more atoms than exist in the
-observable universe). A 105-qubit Willow-layout circuit at depth 5 completes in under 0.5 s.
-Results are exact within the stated truncation error, not statistical estimates.
-
-The simulation engine is built on the **KLT Engine**, a proprietary classical simulation
-framework that routes each problem to the most efficient representation — tensor network,
-cluster-exact, Gaussian covariance matrix, nexus graph, or full statevector — based on the
-entanglement structure of the specific circuit. Callers select a mode with a single parameter;
-the engine handles routing automatically.
+Qumulator is a platform for simulating quantum circuits, spin systems, photonic amplitudes,
+and molecular properties on classical hardware. It is organised around four domains:
+**Quantum Simulation**, **Molecular Chemistry**, **Condensed Matter**, and **Photonic Computing**.
 
 ---
 
-## How Qumulator compares
+## Getting started
 
-MPS simulation scales with **entanglement depth**, not qubit count. Statevector simulators
-scale with **qubit count**. These are complementary tools — Qumulator is not a drop-in
-replacement for exact small-circuit simulation; it is the right tool when qubit count is
-large and entanglement depth is bounded.
-
-| Simulator | Max qubits (exact) | Requires GPU | Scales with | Best for |
-|---|---|---|---|---|
-| **Qumulator** | Unlimited (local) / 1,000 (cloud MPS) / 20 (cloud statevector) | Optional (local) | Entanglement depth | Large structured/variational circuits, VQE, QAOA |
-| **Qumulator DMRG** | 30 active orbitals | No | Active-space size | Exact molecular ground states (FCI-quality) |
-| **Qumulator GMPS/MPO** | 50 active orbitals | No | Fragment count | Multi-fragment pharma molecules |
-| Qiskit Aer | ~30 (statevector) | Optional | Qubit count | General small circuits, local use |
-| BlueQubit | 34–36 | Optional | Qubit count | Exact small–mid circuits, GPU-accelerated |
-| PennyLane | ~25 | Optional | Qubit count | Differentiable circuits, VQE, QAOA |
-
-**Rule of thumb:** Qumulator handles the full spectrum — unlimited statevector locally (bounded only by your RAM/GPU), exact statevector up to 20 qubits via the cloud API, MPS up to 1,000 qubits at low entanglement depth, and cluster/Green's modes for exact results beyond that. The only narrow range where a multi-GPU statevector server has an edge is roughly 20–35 qubits at arbitrary depth; above ~35 qubits, MPS is the only practical option on any hardware, and Qumulator runs it on a standard CPU.
-
----
-
-## Benchmarks
-
-Measured on a standard cloud CPU (4 vCPU, no GPU). "Exact" means output agrees with full
-statevector simulation to double-precision floating point (< 10⁻¹⁴ L² error on the amplitude vector).
-
-| Problem | Size | Result | Reference | Error | Time |
-|---|---|---|---|---|---|
-| CHSH Bell violation | N=2 | S = 2.828427 | 2√2 = 2.828427 | **< 0.0001%** | < 1 ms |
-| H₁₂ Heisenberg chain | 12 sites | −11.000 | −11.000 (exact diag.) | **0.00%** | ~0.27 s |
-| Photonic hafnian (GBS) | 8×8 matrix | 0.2598−0.0078i | exact DP | **< 2×10⁻¹⁵** | 39 ms |
-| Photonic hafnian (GBS) | 12×12 matrix | 0.0239+0.9947i | exact DP | **< 5×10⁻¹⁵** | 43 ms |
-| RCS circuit (exact) | 12 q, depth 20 | XEB = 1.014 | exact statevector | **0.00%** | 15–23 ms |
-| RCS circuit (exact) | 20 q, depth 20 | XEB = 1.024 | exact statevector | **0.00%** | 8.5–9.6 s |
-| MBL discrete time crystal | 8 q, 24 Floquet | autocorr = 0.827 | Google Sycamore 2021 | Consistent | ~1 s |
-| Holographic wormhole | 2×6 SYK sites | fidelity 94.89% | Google Sycamore 2022 | — | ~5 s |
-| Non-Abelian anyon braiding | Fibonacci anyons | ‖[σ₁,σ₂]‖ = 1.272 | SU(2)₃ exact | **< 0.001%** | < 1 ms |
-| Kitaev chain BdG | L=1000 sites | W=−1, gap=2.000 | analytic (exact) | **< 10⁻¹²** | 0.84 s |
-| QUBO dense optimisation | N=100 | matches SA optimum | simulated annealing | 0% | ~3 s |
-| Kuramoto BEC (large-scale) | N=500 oscillators, 2 MB | r=0.114 (Mott-like) | statevector: 2⁵⁰⁰ bytes (impossible) | — | 3.22 s |
-| H₂ DMRG ground state | CAS(2,2) STO-3G, d_max=64 | −1.13728383 Ha | FCI exact | **< 10⁻¹⁰ Ha** | < 1 s |
-| N₂ GMPS/MPO | CAS(10,8) STO-6G | −107.6218 Ha | FCI exact | **< 1 mHa** | ~5 s |
-
-### Circuit depth limits (approximation modes)
-
-Bond dimension $\chi = 2^\text{depth}$; all tiers keep peak memory under 400 MB.
-
-| Tier | Qubit range | Max entangling depth | χ | Peak memory | Notes |
-|------|-------------|---------------------|---|-------------|-------|
-| 1 | 1 – 20 | **20** | 1024 | 335 MB | Exact for structured circuits |
-| 2 | 21 – 54 | **9** | 512 | 226 MB | Exact (2⁹ = 512) |
-| 3 | 55 – 105 | **8** | 256 | 110 MB | Exact (2⁸ = 256) |
-| 4 | 106 – 1,000 | **7** | 128 | 262 MB | Exact (2⁷ = 128) |
-
-**Depth is counted in entangling layers only** — single-qubit gates (H, Rz, T, etc.) do not
-count toward the depth limit and are not restricted. Requests exceeding the tier depth limit
-return HTTP 422 with a self-documenting error message.
-
-Statevector mode: max **20 qubits** at any depth.
-
----
-
-## Install
+### Install
 
 ```bash
 pip install qumulator-sdk
@@ -136,9 +90,7 @@ pip install "qumulator-sdk[cirq]"     # Cirq drop-in simulator
 pip install "qumulator-sdk[all]"      # everything
 ```
 
----
-
-## Get a free API key
+### Get an API key
 
 **Mac / Linux**
 ```bash
@@ -163,9 +115,7 @@ Or via the CLI (after install):
 qumulator key
 ```
 
----
-
-## Quick start — 1,000-qubit circuit in 30 seconds
+### Quick start — 1,000-qubit circuit
 
 ```python
 import os
@@ -179,14 +129,13 @@ client = QumulatorClient(
 # 500 parallel Bell pairs across 1,000 qubits (depth 1)
 eng = client.circuit.engine(n_qubits=1000)
 for i in range(0, 1000, 2):
-    eng.apply("h", i)           # Hadamard on even qubits (parallel)
+    eng.apply("h", i)
 for i in range(0, 1000, 2):
-    eng.apply("cx", [i, i + 1]) # entangle each pair (parallel)
+    eng.apply("cx", [i, i + 1])
 
 result = eng.sample(shots=10)
-print(result.counts)       # e.g. {'0101100110...': 1, '1010011001...': 1, ...}
+print(result.counts)
 print(result.most_probable)
-# Exact result. No quantum hardware. No GPU. Standard cloud CPU.
 ```
 
 Run the built-in demo against the live API:
@@ -198,7 +147,32 @@ qumulator demo --willow  # 105-qubit Willow-layout RCS
 
 ---
 
-## OpenQASM 2/3
+## How Qumulator compares
+
+MPS simulation scales with **entanglement depth**, not qubit count. Statevector simulators
+scale with **qubit count**. These are complementary tools — Qumulator is not a drop-in
+replacement for exact small-circuit simulation; it is the right tool when qubit count is
+large and entanglement depth is bounded.
+
+| Simulator | Max qubits (exact) | Requires GPU | Scales with | Best for |
+|---|---|---|---|---|
+| **Qumulator** | Unlimited (local) / 1,000 (cloud MPS) / 20 (cloud statevector) | Optional (local) | Entanglement depth | Large structured/variational circuits, VQE, QAOA |
+| **Qumulator DMRG** | 30 active orbitals | No | Active-space size | Exact molecular ground states (FCI-quality) |
+| Qumulator MPS/MPO | 50 active orbitals | No | Fragment count | Multi-fragment pharma molecules |
+| Qiskit Aer | ~30 (statevector) | Optional | Qubit count | General small circuits, local use |
+| BlueQubit | 34–36 | Optional | Qubit count | Exact small–mid circuits, GPU-accelerated |
+| PennyLane | ~25 | Optional | Qubit count | Differentiable circuits, VQE, QAOA |
+
+**Rule of thumb:** Qumulator handles the full spectrum — unlimited statevector locally (bounded only by your RAM/GPU), exact statevector up to 20 qubits via the cloud API, MPS up to 1,000 qubits at low entanglement depth, and cluster/Green's modes for exact results beyond that. The only narrow range where a multi-GPU statevector server has an edge is roughly 20–35 qubits at arbitrary depth; above ~35 qubits, MPS is the only practical option on any hardware, and Qumulator runs it on a standard CPU.
+
+---
+
+## Quantum Simulation
+
+Gate-based quantum circuits up to 1,000 qubits — exact for structured circuits, MPS for
+general depth-bounded circuits, with OpenQASM 2/3 input and Qiskit/Cirq drop-in backends.
+
+### OpenQASM 2/3
 
 ```python
 result = client.circuit.run_qasm("""
@@ -215,9 +189,7 @@ print(result.counts)       # {'00': ~512, '11': ~512}
 print(result.entropy_map)  # [0.999, 0.999] — entanglement per qubit
 ```
 
----
-
-## Drop into Qiskit — two lines of code
+### Drop into Qiskit — two lines of code
 
 ```python
 from qumulator.backends.qiskit_backend import QumulatorBackend
@@ -230,9 +202,7 @@ counts  = job.result().get_counts()
 
 Everything else in your Qiskit workflow is unchanged.
 
----
-
-## Drop into Cirq — two lines of code
+### Drop into Cirq — two lines of code
 
 ```python
 from qumulator.backends.cirq_simulator import QumulatorSimulator
@@ -241,52 +211,169 @@ sim    = QumulatorSimulator(client)              # replaces cirq.Simulator()
 result = sim.run(circuit, repetitions=1024)
 ```
 
+### Simulation modes
+
+Pass `mode=` to any `run()` call.
+
+| Mode | Max qubits | Best for |
+|---|---|---|
+| `"statevector"` | 20 | Unconditionally exact; small N, any depth |
+| `"cluster_statevector"` | 1,000 | Exact for any circuit; no 2ᴺ array; memory O(Σ 2^k_c); exact result |
+| `"cluster_mps"` | 1,000 | VQE, QAOA, chemistry ansätze; MPS per cluster |
+| `"mps"` | 1,000 | General circuits; low-entanglement, VQE, QAOA |
+| `"hamiltonian"` | 1,000 | Hamiltonian simulation without gate decomposition |
+| `"gaussian"` | unlimited | Clifford / Gaussian circuits; returns covariance certificate |
+| `"greens"` | 1,000 | Free-fermion circuits; O(N²) memory, exact 1-RDM |
+| `"local"` | unlimited | Local simulation — no API call, no billing |
+
+> Modes with max 1,000 qubits are subject to the tier depth limit (max 7 entangling layers for N > 105).
+> See the [circuit depth limits](#circuit-depth-limits) table. `statevector` mode: 20 qubits, any depth.
+
+### Circuit depth limits
+
+Bond dimension $\chi = 2^\text{depth}$; all tiers keep peak memory under 400 MB.
+
+| Tier | Qubit range | Max entangling depth | χ | Peak memory | Notes |
+|------|-------------|---------------------|---|-------------|-------|
+| 1 | 1 – 20 | **20** | 1024 | 335 MB | Exact for structured circuits |
+| 2 | 21 – 54 | **9** | 512 | 226 MB | Exact (2⁹ = 512) |
+| 3 | 55 – 105 | **8** | 256 | 110 MB | Exact (2⁸ = 256) |
+| 4 | 106 – 1,000 | **7** | 128 | 262 MB | Exact (2⁷ = 128) |
+
+**Depth is counted in entangling layers only** — single-qubit gates (H, Rz, T, etc.) do not
+count toward the depth limit and are not restricted. Requests exceeding the tier depth limit
+return HTTP 422 with a self-documenting error message.
+
+Statevector mode: max **20 qubits** at any depth.
+
+### QS benchmarks
+
+| Problem | Size | Result | Reference | Error | Time |
+|---|---|---|---|---|---|
+| CHSH Bell violation | N=2 | S = 2.828427 | 2√2 = 2.828427 | **< 0.0001%** | < 1 ms |
+| RCS circuit (exact) | 12 q, depth 20 | XEB = 1.014 | exact statevector | **0.00%** | 15–23 ms |
+| RCS circuit (exact) | 20 q, depth 20 | XEB = 1.024 | exact statevector | **0.00%** | 8.5–9.6 s |
+| QUBO dense optimisation | N=100 | matches SA optimum | simulated annealing | 0% | ~3 s |
+| Kuramoto BEC (large-scale) | N=500 oscillators, 2 MB | r=0.114 (Mott-like) | statevector: 2⁵⁰⁰ bytes | — | 3.22 s |
+
+### QS notebooks
+
+| Notebook | Description |
+|---|---|
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/willow_rcs_benchmark.ipynb) | **Willow RCS** — 105-qubit exact simulation, Willow-layout |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/chsh_bell.ipynb) | **CHSH Bell inequality** — Bell state + CHSH correlator, S=2√2 Tsirelson bound |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/cluster_statevector_demo.ipynb) | **Cluster engine** — exact simulation without 2^N state vector; memory O(Σ 2^k_c) |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/greens_demo.ipynb) | **Green's function engine** — free-fermion circuits, O(N²) memory, entropy map |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/qubo.ipynb) | **QUBO optimisation** — 100-variable dense combinatorial optimisation |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/cluster_geometry.ipynb) | **Cluster geometry** — entanglement growth in random H/CX/Rz brickwork circuits |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/prime_factoring.ipynb) | **Prime factorization** — factors N=35 via quantum-inspired energy landscape |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/options_pricer.ipynb) | **European call option pricer** — quantum amplitude estimation vs Black-Scholes, <1% error |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/fantasy_football.ipynb) | **Fantasy football lineup optimizer** — DraftKings QUBO solved with `client.hamiltonian` |
+
 ---
 
-## Simulation modes
+## Molecular Chemistry
 
-Pass `mode=` to any `run()` call. The server selects `auto` by default.
+Compute molecular frontier orbital energies from a SMILES string, or ground-state energies
+from 1-electron/2-electron integrals using MPS/MPO (up to 50 orbitals) or DMRG (up to 30 orbitals).
 
-| User-facing mode | Internal mode | Max qubits | Best for |
-|---|---|---|---|
-| `auto` | (server-routed) | 1,000 | General circuits; server auto-routes |
-| `exact` | (statevector) | 20 | Unconditionally correct; small N |
-| `cluster` | (cluster-exact) | 1,000 | Exact for any circuit; no 2^N array; memory O(Σ 2^k_c); TVD = 0 |
-| `compressed` | (tensor network) | 1,000 | VQE, QAOA, chemistry ansätze |
-| `tensor` | (MPS) | 1,000 | 1D-structured, low-entanglement circuits |
-| `hamiltonian` | (operator algebra) | 1,000 | Hamiltonian simulation without gate decomposition |
-| `gaussian` | (covariance matrix) | unlimited | Clifford circuits; returns Wigner negativity certificate |
-| `greens` | (Green's function) | 1,000 | Free-fermion / Gaussian circuits; O(N²) memory, exact 1-RDM |
-
-> ¹ Modes with max 1,000 qubits are subject to the tier depth limit (max 7 entangling layers for N > 105). See the depth limits table above. `exact` mode: 20 qubits, any depth.
-
----
-
-## Other computation types
+### Frontier orbitals — `client.homo`
 
 ```python
-# Molecular HOMO/LUMO frontier orbital energies (SMILES input)
 homo = client.homo.run("Oc1ccc(/C=C/c2cc(O)cc(O)c2)cc1")
 print(homo.homo_E_eV, homo.lumo_E_eV, homo.gap_eV)
-
-# Ground-state energy of a spin Hamiltonian (Ising / Heisenberg / general)
-import numpy as np
-J = np.random.randn(8, 8); J = (J + J.T) / 2
-result = client.klt.run(J.tolist())
-print(result.energy)
-
-# Hafnian / GBS photonic amplitude
-A = np.random.randn(8, 8); A = (A + A.T) / 2
-h = client.hafnian.run(A.tolist())
-print(h.value)
 ```
+
+### MPS/MPO ground-state energy — `client.molecular`
+
+```python
+from pyscf import gto, scf, mcscf, ao2mo
+from qumulator import QumulatorClient
+
+client = QumulatorClient()
+
+mol = gto.M(atom="H 0 0 0; H 0 0 0.74", basis="sto-3g", spin=0, charge=0)
+mf  = scf.RHF(mol).run()
+mc  = mcscf.CASSCF(mf, ncas=2, nelecas=2).run()
+
+h1e, e_core = mc.get_h1eff()
+h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
+e_nuc = mc.energy_nuc() + e_core
+
+result = client.molecular.energy(
+    h1e=h1e.tolist(),
+    h2e=h2e.tolist(),
+    n_elec=list(mc.nelecas),
+    e_nuc=float(e_nuc),
+)
+print(f"E(MPS)  = {result.energy:.8f} Ha")
+```
+
+Full documentation: [Molecular Energy (MPS/MPO)](https://qumulator.github.io/qumulator-sdk/molecular-mps/)
+
+### DMRG ground-state energy — `client.dmrg`
+
+```python
+result = client.dmrg.energy(
+    h1e=h1e.tolist(),
+    h2e=h2e.tolist(),
+    n_elec=list(mc.nelecas),
+    e_nuc=float(e_nuc),
+    d_max=64,
+    n_sweeps=8,
+)
+print(f"E(DMRG) = {result.energy:.10f} Ha")   # −1.1372838 Ha (exact FCI)
+print(f"converged={result.converged}, t={result.wall_time_s:.2f} s")
+```
+
+**Choosing the right method:**
+
+| | DMRG | MPS/MPO |
+|---|---|---|
+| Active space | ≤ 30 orb | ≤ 50 orb |
+| Requires circuit | No | Optional |
+| Accuracy control | d_max + sweeps | MPO bond dim |
+| Best for | 1D-like, exact FCI | Multi-fragment, pharma |
+
+Full documentation: [DMRG Ground-State Energy](https://qumulator.github.io/qumulator-sdk/dmrg/)
+
+### MC benchmarks
+
+| Problem | Size | Result | Reference | Error | Time |
+|---|---|---|---|---|---|
+| H₂ DMRG ground state | CAS(2,2) STO-3G, d_max=64 | −1.13728383 Ha | FCI exact | **< 10⁻¹⁰ Ha** | < 1 s |
+| N₂ MPS/MPO | CAS(10,8) STO-6G | −107.6218 Ha | FCI exact | **< 1 mHa** | ~5 s |
+
+### MC notebooks
+
+| Notebook | Description |
+|---|---|
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h2_ground_state.ipynb) | **H₂ ground state** — 4-qubit exact simulation, CASCI(2,2)/STO-3G, 100% correlation recovery |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/lih_ground_state.ipynb) | **LiH ground state** — Pauli-Hamiltonian solver, 1.15 mHa error, chemical accuracy |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/n2_ground_state.ipynb) | **N₂ ground state** — 12-qubit exact simulation, 79 kcal/mol correlation recovered, 100% |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/molecular_mps_quickstart.ipynb) | **MPS/MPO quickstart** — molecular ground-state energy from PySCF CAS integrals; `client.molecular` |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/dmrg_quickstart.ipynb) | **DMRG quickstart** — exact FCI via two-site DMRG sweeps; `client.dmrg`; H₂ → −1.13728383 Ha |
 
 ---
 
-## Hamiltonian time evolution (TEBD)
+## Condensed Matter
+
+Spin ground states and time evolution for 1D/2D lattice models — Ising, Heisenberg,
+Kitaev chain, and custom Pauli-sum Hamiltonians.
+
+### Spin ground states — `client.hamiltonian`
+
+```python
+import numpy as np
+J = np.random.randn(8, 8); J = (J + J.T) / 2
+result = client.hamiltonian.run(J.tolist())
+print(result.energy)
+```
+
+### Hamiltonian time evolution (TEBD) — `client.evolve`
 
 Real-time Suzuki–Trotter evolution, imaginary-time ground states, and
-Kibble–Zurek quench protocols — all via `client.evolve`.
+Kibble–Zurek quench protocols.
 
 ```python
 # Real-time TEBD evolution — Ising TFIM
@@ -306,91 +393,74 @@ gs = client.evolve.ground(
 )
 print(gs.energy, gs.bond_entropy)
 
-# Kibble–Zurek quench — measure topological defect density vs. KZM prediction
+# Kibble–Zurek quench
 qkzm = client.evolve.qkzm(
     n_qubits=40, J=1.0, h0=5.0, h_f=0.2, t_ramp=10.0,
 )
 print(qkzm.kzm_defect_density, qkzm.kzm_prediction)
-
-# Collapse-and-revival sudden quench
-revival = client.evolve.quench(n_qubits=20, h=2.0, t_max=10.0)
 ```
 
 Hamiltonian presets: `"ising_1d"`, `"xx_model"`, `"heisenberg"`, `"kuramoto_ising"`.
 Custom Pauli-sum terms are also supported via `hamiltonian={"terms": [...]}`.
 
----
+### CM benchmarks
 
-## Molecular simulation — GMPS/MPO and DMRG
+| Problem | Size | Result | Reference | Error | Time |
+|---|---|---|---|---|---|
+| H₁₂ Heisenberg chain | 12 sites | −11.000 | −11.000 (exact diag.) | **0.00%** | ~0.27 s |
+| Non-Abelian anyon braiding | Fibonacci anyons | ‖[σ₁,σ₂]‖ = 1.272 | SU(2)₃ exact | **< 0.001%** | < 1 ms |
+| Kitaev chain BdG | L=1000 sites | W=−1, gap=2.000 | analytic (exact) | **< 10⁻¹²** | 0.84 s |
+| MBL discrete time crystal | 8 q, 24 Floquet | autocorr = 0.827 | Google Sycamore 2021 | Consistent | ~1 s |
+| Holographic wormhole | 2×6 SYK sites | fidelity 94.89% | Google Sycamore 2022 | — | ~5 s |
 
-Compute the ground-state energy of a molecular active space from 1e/2e integrals.
-Two methods are available: **GMPS/MPO** (up to 50 orbitals, with optional Givens circuit)
-and **DMRG** (up to 30 orbitals, purely variational — no circuit needed).
+### CM notebooks
 
-### GMPS/MPO — `client.molecular`
-
-```python
-from pyscf import gto, scf, mcscf, ao2mo
-from qumulator import QumulatorClient
-
-client = QumulatorClient()
-
-# H2 CAS(2,2) STO-3G
-mol = gto.M(atom="H 0 0 0; H 0 0 0.74", basis="sto-3g", spin=0, charge=0)
-mf  = scf.RHF(mol).run()
-mc  = mcscf.CASSCF(mf, ncas=2, nelecas=2).run()
-
-h1e, e_core = mc.get_h1eff()
-h2e = ao2mo.restore(1, mc.get_h2eff(), mc.ncas)
-e_nuc = mc.energy_nuc() + e_core
-
-# Hartree-Fock reference (no circuit)
-result = client.molecular.energy(
-    h1e=h1e.tolist(),
-    h2e=h2e.tolist(),
-    n_elec=list(mc.nelecas),
-    e_nuc=float(e_nuc),
-)
-print(f"E(HF)   = {result.energy:.8f} Ha")   # −1.11734 Ha
-
-# With Givens orbital-rotation circuit (includes correlation)
-result = client.molecular.energy(
-    h1e=h1e.tolist(), h2e=h2e.tolist(),
-    n_elec=list(mc.nelecas), e_nuc=float(e_nuc),
-    circuit=[{"qi": 0, "qj": 2, "theta": 0.15},
-             {"qi": 1, "qj": 3, "theta": 0.15}],
-)
-print(f"E(GMPS) = {result.energy:.8f} Ha")   # towards −1.13728 Ha
-```
-
-### DMRG — `client.dmrg`
-
-```python
-# H2 CAS(2,2) — exact at d_max=64 (machine precision FCI)
-result = client.dmrg.energy(
-    h1e=h1e.tolist(),
-    h2e=h2e.tolist(),
-    n_elec=list(mc.nelecas),
-    e_nuc=float(e_nuc),
-    d_max=64,         # bond dimension
-    n_sweeps=8,       # max DMRG sweeps
-)
-print(f"E(DMRG) = {result.energy:.10f} Ha")   # −1.1372838 Ha (exact FCI)
-print(f"converged={result.converged}, t={result.wall_time_s:.2f} s")
-```
-
-**Choosing the right method:**
-
-| | DMRG | GMPS/MPO |
-|---|---|---|
-| Active space | ≤ 30 orb | ≤ 50 orb |
-| Requires circuit | No | Optional |
-| Accuracy control | d_max + sweeps | MPO bond dim |
-| Best for | 1D-like, exact FCI | Multi-fragment, pharma |
+| Notebook | Description |
+|---|---|
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/wormhole.ipynb) | **Holographic wormhole** — traversable wormhole, matches Google 2022 |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/anyon_braiding.ipynb) | **Anyon braiding** — Fibonacci anyons, matches Microsoft topological target |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/time_crystal.ipynb) | **Discrete time crystal** — MBL Floquet, matches Google Sycamore 2021 |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/tebd_quench_demo.ipynb) | **Collapse & revival / QKZM** — TEBD Hamiltonian evolution, Kibble-Zurek scaling |
+| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h12_vqe.ipynb) | **H₁₂ chain ground state** — 12-site Ising chain, `client.hamiltonian` |
 
 ---
 
+## Photonic Computing
 
+Compute hafnian and permanent amplitudes for photonic circuits and Gaussian Boson Sampling
+(GBS) experiments — any matrix size, no qubit limit.
+
+### Hafnian / GBS amplitudes — `client.hafnian`
+
+```python
+import numpy as np
+A = np.random.randn(8, 8); A = (A + A.T) / 2
+h = client.hafnian.run(A.tolist())
+print(h.value)
+```
+
+Full documentation: [Photonic Amplitudes](https://qumulator.github.io/qumulator-sdk/photonics/)
+
+### Photonics benchmarks
+
+| Problem | Size | Result | Reference | Error | Time |
+|---|---|---|---|---|---|
+| Photonic hafnian (GBS) | 8×8 matrix | 0.2598−0.0078i | exact DP | **< 2×10⁻¹⁵** | 39 ms |
+| Photonic hafnian (GBS) | 12×12 matrix | 0.0239+0.9947i | exact DP | **< 5×10⁻¹⁵** | 43 ms |
+
+### Photonics notebooks
+
+| Notebook | Description |
+|---|---|
+| [Boson Sampling Demo](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/boson_sampling_xeb.ipynb) | GBS correctness baseline — hafnians 8×8–12×12, self-XEB, exact N=1,000 simulation |
+| [Hafnian Benchmark](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/hafnian_benchmark.ipynb) | 4×4 → 16×16 GBS matrices, scaling plot, verified against `thewalrus` |
+| [GBS Output Distribution](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/gbs_output_distribution.ipynb) | Full photon-number distribution for 4-mode GBS — normalisation and vacuum probability |
+| [Permanent vs Hafnian](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/permanent_vs_hafnian.ipynb) | Distinguishable vs identical photons — HOM dip: P(1,1)=0 confirmed |
+| [Quantum Advantage Threshold](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/quantum_advantage_threshold.ipynb) | Jiuzhang-style scaling — classical spoofability crossover, speedup certificate |
+
+---
+
+## Result diagnostics
 
 Every circuit result returns a full diagnostics payload — no extra call needed.
 
@@ -423,7 +493,7 @@ from the ZZ correlator matrix — an established, independently verifiable quant
 - `entanglement_depth = floor(f_Q_density)`
 
 `predicted_tvd` is a model-based upper bound on the total variation distance to the
-exact distribution. It is `0.0` for unconditionally exact modes (`"exact"`, `"cluster"`).
+exact distribution. It is `0.0` for unconditionally exact modes (`"statevector"`, `"cluster_statevector"`).
 
 `entanglement_dof` is the effective rank of the circuit's entanglement structure,
 computed as `(Σσᵢ)² / Σσᵢ²` from the singular-value spectrum of the 1-RDM. It grows
@@ -433,7 +503,7 @@ additional depth adds no new entanglement correlation. Both fields are on the
 
 ---
 
-## Pricing
+## API Pricing
 
 **1 Compute Unit (CU) = 1 second of engine CPU time.**
 
@@ -442,65 +512,22 @@ A 1,000-qubit depth-3 circuit uses ~10–20 CU. A 20-qubit exact statevector at 
 
 | Plan | Price | CU / month | Notes |
 |---|---|---|---|
-| **Free** | $0 | 500 | Public beta. No account. No credit card. |
-| **Starter** | $99/month | 10,000 | API key + usage dashboard |
-| **Professional** | Contact us | 100,000+ | Priority queue, SLA, volume pricing |
+| **Free** | $0 | 1,000 | Non-commercial & academic use. No account. No credit card. |
+| **Commercial** | Contact us | Unlimited (fair-use) | Dedicated instance, SLA, custom engine parameters |
 
-Free tier rate limit: 1 request/minute, 100 requests/day.
 Full pricing: [qumulator.com/#pricing](https://qumulator.com/#pricing)
 
 ---
 
-## Free tier limits
+## API free tier limits
 
 | Limit | Value |
 |---|---|
-| Compute Units / month | 500 CU (1 CU = 1 CPU-second of engine time) |
+| Compute Units / month | 1,000 CU (1 CU = 1 CPU-second of engine time) |
 | Max qubits (statevector mode) | 20 |
 | Max qubits (MPS mode) | 1,000 — see tier depth limits table |
 | Rate limit | 1 request / minute |
 | Daily limit | 100 requests / day |
-| Free tier availability | Public beta |
-
----
-
-## Quantum Simulations for Everyday Problems
-
-These notebooks apply quantum computing to problems anyone can relate to — no physics background required:
-
-| Notebook | Description |
-|---|---|
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/options_pricer.ipynb) | **European call option pricer** — quantum amplitude estimation vs Black-Scholes, <1% error |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/fantasy_football.ipynb) | **Fantasy football lineup optimizer** — DraftKings QUBO solved with KLT ground-state engine |
-
-## Demo notebooks
-
-Click to open in Google Colab — no install required, just add your API key:
-
-| Notebook | Description |
-|---|---|
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/willow_rcs_benchmark.ipynb) | **Willow RCS** — 105-qubit exact simulation, Willow-layout |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/wormhole.ipynb) | **Holographic wormhole** — traversable wormhole, matches Google 2022 |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/anyon_braiding.ipynb) | **Anyon braiding** — Fibonacci anyons, matches Microsoft topological target |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/time_crystal.ipynb) | **Discrete time crystal** — MBL Floquet, matches Google Sycamore 2021 |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/qubo.ipynb) | **QUBO optimisation** — 100-variable dense combinatorial optimisation |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/klt_cluster_demo.ipynb) | **Cluster engine** — exact simulation without 2^N state vector; memory O(Σ 2^k_c) |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/klt_greens_demo.ipynb) | **Green's function engine** — free-fermion circuits, O(N²) memory, entropy map |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/tebd_quench_demo.ipynb) | **Collapse & revival / QKZM** — TEBD Hamiltonian evolution, Kibble-Zurek scaling |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/prime_factoring.ipynb) | **Prime factorization** — factors N=35 via quantum-inspired energy landscape |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/chsh_bell.ipynb) | **CHSH Bell inequality** — Bell state + CHSH correlator, S=2√2 Tsirelson bound |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h12_vqe.ipynb) | **H₁₂ chain ground state** — 12-site Ising chain solved with KLT solver |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/vortex_geometry.ipynb) | **Vortex geometry** — entanglement growth in random H/CX/Rz brickwork circuits |
-
-## Quantum Chemistry
-
-| | |
-|---|---|
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/h2_ground_state.ipynb) | **H₂ ground state** — 4-qubit exact simulation, CASCI(2,2)/STO-3G, 100% correlation recovery |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/lih_ground_state.ipynb) | **LiH ground state** — KLT Pauli-Hamiltonian solver, 1.15 mHa error, chemical accuracy |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/n2_ground_state.ipynb) | **N₂ ground state** — 12-qubit exact simulation, 79 kcal/mol correlation recovered, 100% |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/molecular_gmps_quickstart.ipynb) | **GMPS/MPO quickstart** — molecular ground-state energy from PySCF CAS integrals; `client.molecular` |
-| [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/dmrg_quickstart.ipynb) | **DMRG quickstart** — exact FCI via two-site DMRG sweeps; `client.dmrg`; H₂ → −1.13728383 Ha |
 
 ---
 

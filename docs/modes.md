@@ -1,22 +1,70 @@
 # Simulation Modes
 
-Pass `mode=` to `engine()` or `run()`. The default `"auto"` lets the server select the
-optimal backend for your circuit.
+Pass `mode=` to `engine()` or `run()`. The default `"mps"` uses the MPS backend and
+scales to 1,000 qubits.
 
 | Mode | Best for | N limit |
 |---|---|---|
-| `"auto"` | General use. Server selects the backend based on circuit size and structure. | ≤ 1,000 |
-| `"exact"` | Small circuits requiring full amplitude precision. Statevector and probability arrays available. | ≤ 20 |
-| `"compressed"` | Structured circuits with moderate entanglement — VQE, QAOA, chemistry ansätze, shallow random circuits. | ≤ 1,000 |
-| `"tensor"` | Circuits with a 1D or near-1D connectivity pattern. | ≤ 1,000 |
+| `"auto"` | Let the engine choose. Analyses the circuit's entanglement graph and selects the optimal mode automatically. Resolved mode and routing diagnostics returned in `result.resolved_mode` and `result.preflight_report`. | ≤ 1,000 |
+| `"statevector"` | Small circuits requiring full amplitude precision. Statevector and probability arrays available. | ≤ 20 |
+| `"mps"` | General circuits; low-entanglement depth, VQE, QAOA, 1D/near-1D connectivity. | ≤ 1,000 |
+| `"cluster_mps"` | Cluster-factorised MPS. VQE, QAOA, chemistry ansätze, shallow random circuits. | ≤ 1,000 |
+| `"cluster_statevector"` | Exact cluster-factorisation engine. No 2ᴺ state vector is ever allocated. Memory O(Σ 2^k_c). Exact for *all* circuits (TVD = 0). | ≤ 1,000 |
 | `"hamiltonian"` | Direct time evolution under a Pauli-string Hamiltonian. Use with `evolve_hamiltonian()`. | ≤ 1,000 |
 | `"gaussian"` | Clifford-heavy circuits. Returns a `GaussianCertificate` classifying non-Clifford content. Memory scales as O(N²). | ≤ 1,000 |
-| `"cluster"` | Exact cluster-factorisation engine. No 2ᴺ state vector is ever allocated. Memory O(Σ 2^k_c) where k_c is the size of each entangled cluster. Exact for *all* circuits (TVD = 0). | ≤ 1,000 |
 | `"greens"` | Green's function / Bloch encoding. Exact within the free-fermion (Gaussian) subspace. O(N²) memory. Returns per-qubit marginals and von Neumann entropy map. | ≤ 1,000 |
 
 !!! info
     Depth limits apply depending on qubit count. Exceeding a tier limit returns HTTP 422
     with a self-documenting error. See [Simulation Limits](limits.md).
+
+---
+
+## Auto-mode routing
+
+When `mode="auto"`, the engine analyses the circuit before simulation using the
+**Kaplan-Yorke dimension** (D_KY), which characterises the fractal dimension of the
+circuit's entanglement attractor structure. The routing thresholds are:
+
+| Condition | Resolved mode | Regime |
+|---|---|---|
+| Tree entanglement graph | `"mps"` | Treewidth = 1; MPS is exact |
+| No non-Clifford (T) gates | `"gaussian"` | Clifford-only; O(N²), exact |
+| D_KY < 2.1 | `"cluster_mps"` | Lorenz area-law |
+| 2.1 ≤ D_KY < 2.5 | `"cluster_mps"` | Rössler/Halvorsen sector |
+| 2.5 ≤ D_KY < 2.9 | `"cluster_exact_graph"` | 3D-like, near volume-law |
+| D_KY ≥ 2.9, N ≤ 20 | `"statevector"` | Nosé-Hoover (dense), exact |
+| D_KY ≥ 2.9, N > 20 | `"statevector"` ⚠ | Classically hard; simulation may be slow |
+
+The resolved mode is returned in `result.resolved_mode`. Routing diagnostics
+(`d_ky`, `entanglement_regime`, `reasoning`, `is_tree`, `edge_density`, etc.) are
+returned in `result.preflight_report`.
+
+```python
+eng = client.circuit.engine(n_qubits=20, mode="auto")
+for i in range(19):
+    eng.apply('cx', [i, i + 1])
+    eng.apply('rz', i, params=[0.3])
+
+result = eng.run(shots=2048)
+print(result.resolved_mode)                      # e.g. 'mps'
+print(result.preflight_report["d_ky"])           # e.g. 2.07
+print(result.preflight_report["reasoning"])      # 'Entanglement graph is a tree...'
+print(result.preflight_report["is_tree"])        # True
+```
+
+### Dry-run preflight (zero CU)
+
+Use `client.circuit.preflight()` to get the routing recommendation without running
+the simulation — no compute units are consumed:
+
+```python
+report = client.circuit.preflight(qasm_source)
+print(report["recommended_mode"])  # e.g. 'cluster_mps'
+print(report["reasoning"])         # one-line explanation
+print(report["d_ky"])              # Kaplan-Yorke dimension
+print(report["is_tree"])           # bool
+```
 
 ---
 
@@ -70,4 +118,4 @@ print(cert.wigner_negativity_estimate) # small positive float
 |---|---|
 | `GAUSSIAN_SIMULABLE` | Purely Clifford circuit; Gaussian approximation is exact. |
 | `LIKELY_GAUSSIAN` | Non-Clifford content is small; high-fidelity approximation. |
-| `NON_GAUSSIAN_CORRECTION_NEEDED` | Substantial non-Clifford content; switch to `"exact"` or `"compressed"` for full accuracy. |
+| `NON_GAUSSIAN_CORRECTION_NEEDED` | Substantial non-Clifford content; switch to `"statevector"` or `"cluster_mps"` for full accuracy. |

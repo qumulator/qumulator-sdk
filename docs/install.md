@@ -59,7 +59,7 @@ client = QumulatorClient(
 | Attribute | Type | Purpose |
 |---|---|---|
 | `client.circuit` | `CircuitClient` | Quantum circuit simulation (gate builder, QASM, Hamiltonian evolution) |
-| `client.klt` | `KLTClient` | Spin ground states and Pauli Hamiltonian energy |
+| `client.hamiltonian` | `HamiltonianClient` | Spin ground states and Pauli Hamiltonian energy |
 | `client.hafnian` | `HafnianClient` | Photonic amplitudes (hafnian, permanent, GBS) |
 | `client.homo` | `HomoClient` | Molecular HOMO/LUMO frontier orbital energies |
 | `client.notebook` | `NotebookClient` | Remote Jupyter notebook execution |

@@ -261,7 +261,7 @@ def _run_demo(args):
         t0 = time.perf_counter()
         try:
             qasm = _build_bell_pairs_qasm(n)
-            result = client.circuit.run_qasm(qasm, shots=1024, mode="klt_mps")
+            result = client.circuit.run_qasm(qasm, shots=1024, mode="mps")
         except QumulatorHTTPError as exc:
             print(f"ERROR: {exc}")
             sys.exit(1)
@@ -291,7 +291,7 @@ def _run_key(_args):
         "       -d '{\"name\": \"my-key\"}' | python -m json.tool\n\n"
         "Then set the environment variable:\n"
         "  export QUMULATOR_API_KEY=qk_...\n\n"
-        "Free tier: 500 Compute Units/month (beta). No credit card required.\n"
+        "Free tier: 1,000 Compute Units/month. Non-commercial and academic use. No credit card required.\n"
         "Pricing and paid plans: https://qumulator.com/#pricing\n"
     )
 

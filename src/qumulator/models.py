@@ -45,9 +45,9 @@ class HomoResult(BaseModel):
     xc: str
 
 
-# ── KLT ──────────────────────────────────────────────────────────────────────
+# ── Hamiltonian ─────────────────────────────────────────────────────────────
 
-class KLTResult(BaseModel):
+class SpinGroundStateResult(BaseModel):
     energy: float
     states: list[float]
     entropy_list: list[float]
@@ -137,7 +137,7 @@ class HamiltonianSpec(BaseModel):
         XXX Heisenberg chain: ``J(XX+YY+ZZ)``.
         Parameter: ``J`` (default 1.0).
     ``"kuramoto_ising"``
-        KLT Kuramoto-Ising: ``J·ZZ + (K/2)(XY−YX)``.
+        Hamiltonian (Kuramoto-Ising): ``J·ZZ + (K/2)(XY−YX)``.
         Parameters: ``J`` (default 1.0), ``K`` (default 1.5).
     """
     terms:  Optional[list[HamiltonianTerm]] = None
@@ -289,8 +289,8 @@ class AKLTResult(BaseModel):
         be ≈ 1.0 bit exactly (one singlet = one ebit per virtual bond).
     mean_bond_entropy : float
         Mean over all bonds.  Should be ≈ 1.0 bit for the AKLT state.
-    klt_labels : list[str]
-        KLT entanglement-phase label per bond.  All bonds should be ``"Z3"``
+    phase_labels : list[str]
+        Entanglement-phase label per bond.  All bonds should be ``"Z3"``
         (entropy in [0.6, 1.2) bits) for the AKLT VBS.
     string_order : dict[str, float] or None
         Hidden Z₂×Z₂ string order parameter O_string(i, j) for each requested
@@ -308,18 +308,18 @@ class AKLTResult(BaseModel):
     max_bond_dim:      int
     bond_entropy:      list[float]
     mean_bond_entropy: float
-    klt_labels:        list[str]
+    phase_labels:        list[str]
     string_order:      Optional[dict[str, float]] = None
     qfi:               Optional[float]            = None
     magnetization:     Optional[list[float]]      = None
     correlators:       Optional[list[float]]      = None
 
 
-# ── Molecular GMPS / MPO ──────────────────────────────────────────────────────
+# ── Molecular MPS / MPO ──────────────────────────────────────────────────────────────────────────────
 
 class MolecularEnergyResult(BaseModel):
     """
-    Result of a molecular active-space energy calculation via GMPS/MPO.
+    Result of a molecular active-space energy calculation via MPS/MPO.
 
     Attributes
     ----------
@@ -330,7 +330,7 @@ class MolecularEnergyResult(BaseModel):
     n_orb : int
         Number of active molecular orbitals.
     n_components : int
-        Number of GMPS fragment components discovered.
+        Number of MPS fragment components discovered.
     zz_correlators : list[list[float]] or None
         ⟨ZᵢZⱼ⟩ correlator matrix (n_qubits × n_qubits).
         None if not computed.

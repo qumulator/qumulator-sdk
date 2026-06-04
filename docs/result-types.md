@@ -13,7 +13,7 @@
 | `f_Q_density` | `float\|None` | QFI density (Tóth–Gühne 2012). `f_Q > k` certifies genuine (k+1)-partite entanglement. |
 | `entanglement_depth` | `int\|None` | Certified entanglement depth = ⌊f_Q⌋. 0 = separable. |
 | `predicted_tvd` | `float\|None` | TVD upper bound to the exact distribution. `0.0` for unconditionally exact modes. |
-| `phase_label` | `str\|None` | KLT entanglement-phase label (Z1–Z5) returned when using `mode="klt_phase"`. |
+| `phase_label` | `str\|None` | Entanglement-phase label (Z1–Z5) returned when using `mode="phase"`. |
 | `gaussian_certificate` | `GaussianCertificate\|None` | Populated when `mode="gaussian"`. |
 | `most_probable` | `str` (property) | Bitstring with the highest count |
 

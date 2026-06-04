@@ -13,7 +13,7 @@ string over `{I, X, Y, Z}`, one character per site.
 
 ```python
 # H2 molecule — STO-3G, Jordan-Wigner mapping (2 sites)
-result = client.klt.run(
+result = client.hamiltonian.run(
     pauli_hamiltonian={
         "II": -1.8572750,   # constant / nuclear repulsion
         "ZI": -0.3979374,
@@ -39,7 +39,7 @@ J = np.random.randn(N, N)
 J = (J + J.T) / 2  # symmetrize
 np.fill_diagonal(J, 0)
 
-result = client.klt.run(interaction_matrix=J.tolist())
+result = client.hamiltonian.run(interaction_matrix=J.tolist())
 print(result.energy)   # ground-state energy
 print(result.states)   # per-site spin expectation values
 print(result.max_S)    # max bipartite entanglement entropy
@@ -47,7 +47,7 @@ print(result.max_S)    # max bipartite entanglement entropy
 
 ---
 
-## KLTResult fields
+## SpinGroundStateResult fields
 
 | Field | Type | Description |
 |---|---|---|
