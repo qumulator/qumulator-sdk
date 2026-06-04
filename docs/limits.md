@@ -15,7 +15,7 @@ return HTTP 422 with a self-documenting error message.
 not count toward the depth limit and are not restricted.
 
 !!! warning
-    `"exact"` mode (statevector) is limited to N ≤ 20 (Tier 1 only). All modes follow
+    `"statevector"` mode is limited to N ≤ 20 (Tier 1 only). All modes follow
     the tier depth limits above.
 
 ---

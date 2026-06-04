@@ -2,9 +2,9 @@
 
 !!! success "The Qumulator statevector engine is now open-source"
     `LocalStatevectorEngine` ships inside the SDK — **no qubit limits**, no API key,
-    no account, no network required. The breaking changes listed in the [README](https://github.com/qumulator/qumulator-sdk#readme) affect the cloud API client only — `LocalStatevectorEngine` is unaffected.
     no account, no network required. Now you can run the statevector engine locally,
     with full source code. The only ceiling is your own hardware.
+    The breaking changes listed in the [README](https://github.com/qumulator/qumulator-sdk#readme) affect the cloud API client only — `LocalStatevectorEngine` is unaffected.
     GPU acceleration (CuPy / JAX / PyTorch) is auto-detected at runtime.
 
     ```bash

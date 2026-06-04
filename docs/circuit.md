@@ -113,7 +113,7 @@ print(report["reasoning"])          # one-line explanation
 print(report["d_ky"])               # Kaplan-Yorke dimension
 print(report["is_tree"])            # True for chain/star/tree topologies
 ```
-| `bond_dim` | `int` | | Bond dimension cap for `"compressed"` and `"tensor"` modes |
+| `bond_dim` | `int` | | Bond dimension cap for `"cluster_mps"` and `"mps"` modes |
 
 ---
 
@@ -123,8 +123,8 @@ print(report["is_tree"])            # True for chain/star/tree topologies
 |---|---|---|---|
 | `shots` | `int` | 1024 | Measurement samples (1 to 1,000,000) |
 | `seed` | `int` | None | RNG seed for reproducible sampling |
-| `return_statevector` | `bool` | False | Include complex amplitude vector (requires N ≤ 20, `"exact"` mode only) |
-| `return_probabilities` | `bool` | False | Include probability vector (requires N ≤ 20, `"exact"` mode only) |
+| `return_statevector` | `bool` | False | Include complex amplitude vector (requires N ≤ 20, `"statevector"` mode only) |
+| `return_probabilities` | `bool` | False | Include probability vector (requires N ≤ 20, `"statevector"` mode only) |
 | `return_entropy_map` | `bool` | False | Include per-qubit entanglement entropy values |
 | `dry_run` | `bool` | False | Validate the circuit client-side without submitting to the API |
 

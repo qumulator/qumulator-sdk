@@ -32,8 +32,8 @@ print(counts)   # {'00': ~1024, '11': ~1024}
 ## Specifying a simulation mode
 
 ```python
-# compressed mode for a large variational circuit
-backend = QumulatorBackend(client, mode="compressed")
+# cluster_mps mode for a large variational circuit
+backend = QumulatorBackend(client, mode="cluster_mps")
 job     = backend.run(qc, shots=8192)
 ```
 

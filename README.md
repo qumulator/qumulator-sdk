@@ -30,7 +30,7 @@ and this is the right time to do it.
 | `mode="tensor"` | `mode="mps"` | `circuit.run()` |
 | `mode="compressed"` | `mode="cluster_mps"` | `circuit.run()` |
 | `mode="cluster"` | `mode="cluster_statevector"` | `circuit.run()` |
-| `mode="auto"` | *(removed)* | use `mode="mps"` |
+| `mode="auto"` | **re-added** | first-class auto-routing mode — preflight analysis, D_KY routing |
 
 Full details in [CHANGELOG.md](CHANGELOG.md). These changes affect the cloud API client only — `LocalStatevectorEngine` is unaffected.
 

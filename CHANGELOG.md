@@ -92,6 +92,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs** — `result-types.md`, `rest-jobs.md`, and `README.md` updated with field
   descriptions and a polling JSON example showing the new fields.
 
+### Fixed (Docs)
+
+- **`README.md`** — Corrected the breaking-changes rename table: `mode="auto"` was
+  incorrectly listed as `*(removed)* — use mode="mps"`. `mode="auto"` was re-added in
+  v0.4.0 as a first-class auto-routing mode; the table now correctly shows it as
+  **re-added** with a description of its preflight / D_KY routing behaviour.
+- **`docs/circuit.md`** — `bond_dim` parameter description referenced the old mode
+  names `"compressed"` and `"tensor"`; corrected to `"cluster_mps"` and `"mps"`.
+  `return_statevector` and `return_probabilities` described as requiring `"exact"` mode;
+  corrected to `"statevector"`.
+- **`docs/qasm.md`** — Code example used `mode="exact"`; corrected to `mode="statevector"`.
+- **`docs/qiskit.md`** — Code comment and `mode=` argument used old name `"compressed"`;
+  corrected to `"cluster_mps"`.
+- **`docs/limits.md`** — Warning admonition referred to `"exact"` mode; corrected to
+  `"statevector"`.
+- **`docs/index.md`** — Removed duplicate sentence in the open-source admonition.
+- **`docs/notebooks.md`** — Removed duplicate `## Demo notebooks` section heading;
+  renamed second occurrence to `## Quantum Computing Demos`.
+
 ---
 
 ## [0.5.1] — 2026-05-28

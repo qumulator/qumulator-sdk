@@ -19,7 +19,7 @@ measure q -> c;
 result = client.circuit.run_qasm(
     qasm=qasm_source,
     shots=2048,
-    mode="exact",
+    mode="statevector",
     return_entropy_map=True,
 )
 print(result.counts)    # {'000': ~1024, '111': ~1024}

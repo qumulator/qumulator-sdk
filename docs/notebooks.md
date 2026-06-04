@@ -59,7 +59,7 @@ These notebooks apply quantum computing to problems anyone can relate to — no 
 | [European call option pricer](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/options_pricer.ipynb) | Quantum amplitude estimation vs Black-Scholes — <1% error on a 5-qubit circuit |
 | [Fantasy football lineup optimizer](https://colab.research.google.com/github/qumulator/qumulator-sdk/blob/main/notebooks/fantasy_football.ipynb) | DraftKings salary-cap QUBO solved with the Hamiltonian engine |
 
-## Demo notebooks
+## Quantum Computing Demos
 
 | Notebook | Description |
 |---|---|
