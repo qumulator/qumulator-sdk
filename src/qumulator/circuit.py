@@ -314,9 +314,9 @@ class CircuitResult:
     phase_label: Optional[str] = None
     """Entanglement-phase label (``'Z1'``�``'Z5'``).
 
-    Indicates which Lorenz-family attractor regime the circuit's entanglement
-    structure falls into.  Z1 is the lowest-entropy / most regular regime;
-    Z5 is the Haar-random / maximal-entropy regime.
+    Indicates the entanglement regime of the circuit's structure.
+    Values: `'product_state'` (S<0.1 bits), `'area_law'` (0.1-0.6),
+    `'topological_class'` (0.6-1.2), `'near_volume_law'` (1.2-2.5), `'volume_law'` (>=2.5).
     ``None`` when the backend does not return this field."""
     resolved_mode: Optional[str] = None
     """The simulation mode actually used.  Populated when ``mode='auto'`` was

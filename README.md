@@ -25,7 +25,7 @@ and this is the right time to do it.
 | `KLTClient` | `HamiltonianClient` | `from qumulator import HamiltonianClient` |
 | `client.klt` | `client.hamiltonian` | attribute on `QumulatorClient` |
 | `KLTResult` | `SpinGroundStateResult` | result model |
-| `AKLTResult.klt_labels` | `AKLTResult.phase_labels` | field name |
+| `AKLTResult.klt_labels` | `AKLTResult.phase_labels` (values now use standard regime names) | field name |
 | `mode="exact"` | `mode="statevector"` | `circuit.run()` |
 | `mode="tensor"` | `mode="mps"` | `circuit.run()` |
 | `mode="compressed"` | `mode="cluster_mps"` | `circuit.run()` |
@@ -403,6 +403,18 @@ print(qkzm.kzm_defect_density, qkzm.kzm_prediction)
 
 Hamiltonian presets: `"ising_1d"`, `"xx_model"`, `"heisenberg"`, `"kuramoto_ising"`.
 Custom Pauli-sum terms are also supported via `hamiltonian={"terms": [...]}`.
+
+#### MPS bond entanglement regime labels (`phase_labels`)
+
+TEBD endpoints (`client.evolve.aklt()`, `client.evolve.run()`) return a `phase_labels` list — one label per MPS bond, derived from the von Neumann entropy S of each bond's Schmidt decomposition:
+
+| Label | Entropy | Description |
+|---|---|---|
+| `"product_state"` | S < 0.1 bits | Unentangled — qubits on either side of the bond are independent |
+| `"area_law"` | 0.1–0.6 bits | Bounded entanglement; MPS-tractable at any depth |
+| `"topological_class"` | 0.6–1.2 bits | SPT / topological phase regime — the AKLT VBS inter-site bond has S = 1 bit and lands here exactly |
+| `"near_volume_law"` | 1.2–2.5 bits | High entanglement, approaching volume-law |
+| `"volume_law"` | S ≥ 2.5 bits | Near-maximal entanglement — Haar-random / deep circuit regime |
 
 ### CM benchmarks
 | Non-Abelian anyon braiding | Fibonacci anyons (N=8) | ‖[σ₁,σ₂]‖ = 1.272 | SU(2)₃ exact | **< 0.001%** | < 1 ms |

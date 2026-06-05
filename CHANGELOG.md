@@ -28,12 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation Fixes — June 4, 2026 *(uncommitted)*
 
-> **Files:** `CHANGELOG.md`, `README.md`, `docs/modes.md`, `docs/notebooks.md`, `docs/rest-circuits.md`
+> **Files:** `CHANGELOG.md`, `README.md`, `docs/modes.md`, `docs/notebooks.md`, `docs/rest-circuits.md`, `docs/result-types.md`, `docs/evolve.md`, `src/qumulator/circuit.py` (docstring only)
 
 - `docs/modes.md` — Added `"cluster_exact_graph"`, `"fibonacci_anyon"`, `"kuramoto"`, `"cluster_gaussian"`, `"sparse"` to the mode table. Removed `"dyson"` (experimental internal alias, never a stable public mode; use `"greens"` for 1-RDM / free-fermion simulation).
 - `docs/rest-circuits.md` — Updated valid mode list to match engine route validators.
-- `README.md` — Restored Kuramoto BEC benchmark row; restored Fibonacci anyon braiding benchmark and notebook link; added sparse GHZ benchmark row.
+- `README.md` — Restored Kuramoto BEC benchmark row; restored Fibonacci anyon braiding benchmark and notebook link; added sparse GHZ benchmark row. Added **MPS bond entanglement regime labels** table (see below).
 - `docs/notebooks.md` — Restored anyon braiding notebook entry with `mode="fibonacci_anyon"` reference; added Kuramoto BEC and sparse engine notebook entries.
+- `docs/result-types.md` — Updated `phase_label` field description; added a new **Phase Labels** reference section with the full entropy-threshold table, canonical quantum state calibration, and physical descriptions.
+- `docs/evolve.md` — Updated `client.evolve.lattice()` description to include the new label names.
+- `src/qumulator/circuit.py` — `CircuitResult.phase_label` field docstring updated: removed Z1–Z5 internal label references, replaced with the five standard regime names and entropy ranges.
 - `CHANGELOG.md` — This entry.
 
 Four engine simulation modes are now live and documented. All four integration-tested in Docker (PASS). No SDK code change required — use `mode=` in the existing circuit endpoint:
@@ -46,6 +49,20 @@ Four engine simulation modes are now live and documented. All four integration-t
 | `"sparse"` | Adaptive sparse exact simulation. O(K log K) per gate, K = active basis states. Up to 78× faster than dense statevector for sparse circuits (GHZ, particle-conserving). Auto-hands off to MPS when K exceeds the crossover threshold. |
 
 Experimental internal engine mode names removed from documentation. No impact on any public circuit API mode.
+
+#### Phase labels renamed (documentation and docstrings only — no wire-format change)
+
+The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and related TEBD endpoints have been renamed from internal codenames to standard quantum-information terminology. The engine wire values have been updated to match.
+
+| Old label | New label | Entropy range | Physical meaning |
+|---|---|---|---|
+| `"product"` | `"product_state"` | S < 0.1 bits | Unentangled — independent qubits |
+| `"bell_pair"` | `"area_law"` | 0.1–0.6 bits | Bounded entanglement; MPS-tractable |
+| `"multi_body"` | `"topological_class"` | 0.6–1.2 bits | SPT / Haldane / AKLT regime (S = 1 bit exactly) |
+| `"cluster"` | `"near_volume_law"` | 1.2–2.5 bits | High entanglement, approaching volume-law |
+| `"volume_law"` | `"volume_law"` | S ≥ 2.5 bits | *(unchanged)* Haar-random / maximal entanglement |
+
+> **Note:** `"volume_law"` is unchanged. The other four are **breaking changes** in the `phase_labels` list returned by TEBD endpoints. If you are pattern-matching on label strings in your code, update to the new names.
 
 ---
 

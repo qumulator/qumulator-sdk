@@ -9,7 +9,7 @@ The `client.evolve` sub-client provides Hamiltonian time evolution via TEBD
 | `client.evolve.quench()` | Sudden quench / collapse-and-revival protocol. Returns trajectory + optional `C_tR` ZZ-correlator heatmap. |
 | `client.evolve.ground()` | Imaginary-time evolution to the ground state. Returns `energy`, `bond_entropy`, and `converged`. |
 | `client.evolve.qkzm()` | Kibble-Zurek quench protocol. Returns `kzm_defect_density`, `kzm_prediction`, and `tau_Q`. |
-| `client.evolve.lattice()` | 2D lattice regime classifier. Returns `bond_entropy_2d` heatmap and `phase_label`. |
+| `client.evolve.lattice()` | 2D lattice regime classifier. Returns `bond_entropy_2d` heatmap and `phase_label` (one of `"product_state"`, `"area_law"`, `"topological_class"`, `"near_volume_law"`, `"volume_law"`). |
 
 ---
 
