@@ -55,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Four engine simulation modes are now live and documented. All four integration-tested in Docker (PASS). No SDK code change required — use `mode=` in the existing circuit endpoint:
 
 | Mode | Description |
-|---|---|
+| --- | --- |
 | `"fibonacci_anyon"` | SU(2)₃ Chern-Simons topological quantum computing. Hilbert space dimension F_{N+2}. Native braid gates: `fibonacci_f` (F-matrix), `fibonacci_r` (R-matrix), `fibonacci_b` / `fibonacci_bdg` (braid σ_k / σ_k†). Topological XEB score via `.compute_xeb()`. Matches Microsoft topological qubit target. |
 | `"kuramoto"` | Bose-Hubbard / Kuramoto BEC phase-oscillator engine. O(N²) memory. Superfluid order parameter r = \|⟨e^{iθ}⟩\|. `eng.kuramoto_diagnostics()` returns full phase-space output. Scales to N = 10,000+ oscillators. |
 | `"cluster_gaussian"` | Exact cluster-factorised probability engine. Memory O(Σ 2^k_c) per cluster. Never builds the full 2^N statevector. Exact joint probabilities P(x) via the cluster Born rule. |
@@ -68,7 +68,7 @@ Experimental internal engine mode names removed from documentation. No impact on
 The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and related TEBD endpoints have been renamed from internal codenames to standard quantum-information terminology. The engine wire values have been updated to match.
 
 | Old label | New label | Entropy range | Physical meaning |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `"product"` | `"product_state"` | S < 0.1 bits | Unentangled — independent qubits |
 | `"bell_pair"` | `"area_law"` | 0.1–0.6 bits | Bounded entanglement; MPS-tractable |
 | `"multi_body"` | `"topological_class"` | 0.6–1.2 bits | SPT / Haldane / AKLT regime (S = 1 bit exactly) |
@@ -281,8 +281,8 @@ The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and r
   allocating or evolving a statevector:
 
   | Pattern | Detection | Output |
-  |---|---|---|
-  | Bell state | `H(0) + CNOT(0,1)` on 2 qubits | 50% `|00⟩`, 50% `|11⟩` |
+  | --- | --- | --- |
+  | Bell state | `H(0) + CNOT(0,1)` on 2 qubits | 50% ` | 00⟩`, 50%` | 11⟩` |
   | Bernstein-Vazirani | `H⊗n + oracle + H⊗n` | hidden bitstring *s* with prob 1 |
   | QFT | H + controlled-phase ladder | uniform over all `2^n` states |
   | Grover | H init + oracle/diffusion × k | marked state with `sin²((2k+1)θ)` |
@@ -377,6 +377,7 @@ The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and r
 ## [0.3.0] - 2026-05-03
 
 ### Added
+
 - `EvolveClient` (`client.evolve`) — real-time TEBD Hamiltonian evolution, imaginary-time
   ground-state preparation, QKZM quench, and 2-D lattice evolution
 - Circuit execution modes `'cluster'` (exact cluster-factorization, O(Σ 2^k_c) memory,
@@ -392,10 +393,12 @@ The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and r
   `chsh_bell`, `h12_vqe`, `prime_factoring`, `vortex_geometry`
 
 ### Changed
+
 - README expanded with `cluster`, `greens`, and `evolve` API examples
 - README Colab notebook table updated with all new notebooks
 
 ### Fixed
+
 - PyRight / mypy type errors resolved across `circuit.py`, `models.py`, and `resources.py`
 
 ---
@@ -403,11 +406,13 @@ The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and r
 ## [0.2.1] - 2026-05-01
 
 ### Fixed
+
 - `return_statevector=True` now returns a correct `numpy.ndarray` — the engine encodes
   amplitudes as separate `statevector_real` / `statevector_imag` arrays; the client
   now reassembles them into a single complex vector
 
 ### Changed
+
 - CI publish workflow switched from OpenID Connect trusted publishing to `PYPI_API_TOKEN`
   secret for broader environment compatibility
 
@@ -416,6 +421,7 @@ The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and r
 ## [0.2.0] - 2026-04-29
 
 ### Added
+
 - `QumulatorClient()` zero-argument constructor: reads `QUMULATOR_API_URL` and
   `QUMULATOR_API_KEY` from the environment automatically — no keyword args required
 - CLI `qumulator run <file.qasm>` — submit an OpenQASM 2.0 file and print the result
@@ -423,12 +429,14 @@ The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and r
 - Tier 2 and Tier 3 entangling-depth limits documented in the README free-tier table
 
 ### Changed
+
 - README quickstart updated to use parallel Bell pairs (depth-1 circuit, always within
   free-tier limits) instead of a linear GHZ chain
 - Qiskit and Cirq backend constructors now accept zero arguments and read credentials
   from the environment, matching `QumulatorClient`
 
 ### Fixed
+
 - Statevector mode max-qubit limit corrected from 25 to 20 in README
 - Tier depth limits corrected: Tier 2 → 9, Tier 3 → 8, Tier 4 → 7
 - 54-qubit MPS cap removed from free-tier table (no such cap applies)
@@ -440,6 +448,7 @@ The MPS bond entanglement regime labels returned by `client.evolve.aklt()` and r
 ## [0.1.0] - 2026-04-18
 
 ### Added
+
 - Initial release of the Qumulator Python SDK
 - `QumulatorClient` with sub-clients: `circuit`, `homo` (DFT HOMO/LUMO), `klt`
   (Ising/spin Hamiltonian ground states), `hafnian` (photonic GBS), `majorana`, `vortex`
