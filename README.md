@@ -10,32 +10,6 @@
 
 ---
 
-## ⚠️ Breaking changes in the next release — please read
-
-During early development, several internal codenames crept into the public API
-(`KLT`, `Vortex`, `GMPS`, `GESS`). These were opaque to anyone reading the code for
-the first time. Rather than carry that confusion into v1.0, we renamed everything
-clearly while the SDK is still in beta. The list is short, the new names are obvious,
-and this is the right time to do it.
-
-**Update now:** `pip install --upgrade qumulator-sdk`
-
-| Old name | New name | Where |
-|---|---|---|
-| `KLTClient` | `HamiltonianClient` | `from qumulator import HamiltonianClient` |
-| `client.klt` | `client.hamiltonian` | attribute on `QumulatorClient` |
-| `KLTResult` | `SpinGroundStateResult` | result model |
-| `AKLTResult.klt_labels` | `AKLTResult.phase_labels` (values now use standard regime names) | field name |
-| `mode="exact"` | `mode="statevector"` | `circuit.run()` |
-| `mode="tensor"` | `mode="mps"` | `circuit.run()` |
-| `mode="compressed"` | `mode="cluster_mps"` | `circuit.run()` |
-| `mode="cluster"` | `mode="cluster_statevector"` | `circuit.run()` |
-| `mode="auto"` | **re-added** | first-class auto-routing mode — preflight analysis, D_KY routing |
-
-Full details in [CHANGELOG.md](CHANGELOG.md). These changes affect the cloud API client only — `LocalStatevectorEngine` is unaffected.
-
----
-
 ## Local statevector engine (open-source, run locally)
 
 The full statevector simulation core ships inside `qumulator-sdk` as

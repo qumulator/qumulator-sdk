@@ -22,6 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — July 26, 2026
+
+### Documentation
+
+- `README.md` — Removed the "⚠️ Breaking changes in the next release" notice. The
+  API renames (`KLTClient` → `HamiltonianClient`, `client.klt` → `client.hamiltonian`,
+  `KLTResult` → `SpinGroundStateResult`, `AKLTResult.klt_labels` → `AKLTResult.phase_labels`,
+  mode aliases `exact`/`tensor`/`compressed`/`cluster`) are complete and have been the
+  default for several releases. Users on any current version are unaffected; the notice
+  is no longer relevant.
+
+---
+
 ## [Unreleased] — June 4, 2026
 
 > **Note:** The two most recent change batches (June 3 push + June 4 uncommitted) are **documentation fixes only** — no SDK Python source code was modified in either batch. All changes are Markdown files: `CHANGELOG.md`, `README.md`, `docs/*.md`.
