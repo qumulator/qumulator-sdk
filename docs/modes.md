@@ -4,10 +4,11 @@ Pass `mode=` to `engine()` or `run()`. The default `"mps"` uses the MPS backend 
 scales to 1,000 qubits.
 
 | Mode | Best for | N limit |
-|---|---|---|
+| --- | --- | --- |
 | `"auto"` | Let the engine choose. Analyses the circuit's entanglement graph and selects the optimal mode automatically. Resolved mode and routing diagnostics returned in `result.resolved_mode` and `result.preflight_report`. | ≤ 1,000 |
 | `"statevector"` | Small circuits requiring full amplitude precision. Statevector and probability arrays available. | ≤ 20 |
 | `"mps"` | General circuits; low-entanglement depth, VQE, QAOA, 1D/near-1D connectivity. | ≤ 1,000 |
+| `"geometric_mps"` | **Exact, non-truncated MPS.** Bond dimension derived from the circuit's qubit-coupling graph (chain/ring/grid/general — not a spatial embedding) before running — no SVD truncation, no guessed χ. Automatically selected by `mode="auto"` for particle-number-conserving circuits (Givens/iSWAP-family ansätze); actual bond dimension stays C(n,k)-bounded for the true excitation count regardless of apparent graph density. | ≤ 1,000 |
 | `"cluster_mps"` | Cluster-factorised MPS. VQE, QAOA, chemistry ansätze, shallow random circuits. | ≤ 1,000 |
 | `"cluster_statevector"` | Exact cluster-factorisation engine. No 2ᴺ state vector is ever allocated. Memory O(Σ 2^k_c). Exact for *all* circuits (TVD = 0). | ≤ 1,000 |
 | `"cluster_exact_graph"` | Near-volume-law circuits with graph entanglement topology. | ≤ 50 |
@@ -16,12 +17,19 @@ scales to 1,000 qubits.
 | `"greens"` | Green's function / Bloch encoding. Exact within the free-fermion (Gaussian) subspace. O(N²) memory. Returns per-qubit marginals and von Neumann entropy map. | ≤ 1,000 |
 | `"cluster_gaussian"` | **Cluster-factorised exact probability engine.** Never builds 2^N; O(Σ 2^k_c) memory per cluster. | ≤ 1,000 |
 | `"fibonacci_anyon"` | **Topological quantum computing.** SU(2)₃ Chern-Simons Fibonacci anyons. Hilbert space dimension F_{N+2}. Native braid gates: `fibonacci_f`, `fibonacci_r`, `fibonacci_b`, `fibonacci_bdg`. Returns topological XEB score. | ≤ 1,000 |
-| `"kuramoto"` | **Bose-Hubbard BEC / Kuramoto synchronisation.** O(N²) phase-oscillator engine. Superfluid order parameter r = \|⟨e^{iθ}⟩\|. Ideal for large-N BEC and synchronisation studies. Use `kuramoto_diagnostics()` for full phase-space output. | ≤ 10,000 |
+| `"kuramoto"` | **Bose-Hubbard BEC / Kuramoto synchronisation.** O(N²) phase-oscillator engine. Superfluid order parameter r = \|⟨e^{iθ}⟩\|. Exact for genuine bosonic/BEC problems; an approximate heuristic when applied to general qubit circuits. Ideal for large-N BEC and synchronisation studies. Use `kuramoto_diagnostics()` for full phase-space output. | ≤ 10,000 |
 | `"sparse"` | **Adaptive sparse exact simulation.** O(K log K) per gate, K = number of active basis states. Ideal for particle-conserving circuits, GHZ/cluster states, structured chemistry. Up to 78× faster than dense statevector at N=20 for sparse circuits. | Unlimited (K ≪ 2^N) |
 
 !!! info
     Depth limits apply depending on qubit count. Exceeding a tier limit returns HTTP 422
     with a self-documenting error. See [Simulation Limits](limits.md).
+
+!!! info
+    Two names above are re-used from other subfields and mean something specific here:
+    `"cluster_*"` modes refer to connected components of the circuit's entanglement graph,
+    not the measurement-based-quantum-computing "cluster state" resource; `"gaussian"`
+    adapts the continuous-variable Gaussian-state/covariance-matrix formalism to qubit
+    Clifford circuits, it is not a continuous-variable photonic mode.
 
 ---
 
@@ -32,9 +40,10 @@ When `mode="auto"`, the engine analyses the circuit before simulation using the
 circuit's entanglement structure. The routing thresholds are:
 
 | Condition | Resolved mode | Regime |
-|---|---|---|
+| --- | --- | --- |
 | Tree entanglement graph | `"mps"` | Treewidth = 1; MPS is exact |
 | No non-Clifford (T) gates | `"gaussian"` | Clifford-only; O(N²), exact |
+| Particle-number-conserving (Givens/iSWAP-family, diagonal-only entangling gates) | `"geometric_mps"` | Exact regardless of apparent graph density; cost is C(n,k)-bounded for the true excitation count |
 | D_KY < 2.1 | `"cluster_mps"` | Area-law (low entanglement) |
 | 2.1 ≤ D_KY < 2.5 | `"cluster_mps"` | Intermediate entanglement |
 | 2.5 ≤ D_KY < 2.9 | `"cluster_exact_graph"` | 3D-like, near volume-law |
@@ -120,7 +129,7 @@ print(cert.wigner_negativity_estimate) # small positive float
 ```
 
 | Certificate label | Meaning |
-|---|---|
+| --- | --- |
 | `GAUSSIAN_SIMULABLE` | Purely Clifford circuit; Gaussian approximation is exact. |
 | `LIKELY_GAUSSIAN` | Non-Clifford content is small; high-fidelity approximation. |
 | `NON_GAUSSIAN_CORRECTION_NEEDED` | Substantial non-Clifford content; switch to `"statevector"` or `"cluster_mps"` for full accuracy. |

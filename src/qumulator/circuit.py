@@ -37,6 +37,12 @@ Execution modes
                    entanglement (VQE, QAOA, chemistry).
 ``'mps'``          Tensor-network backend. Efficient for structured and
                    1D circuits. Supports N > 50.
+``'geometric_mps'``  Exact, non-truncated MPS. Bond dimension is derived
+                   from the circuit's qubit-coupling graph (not a spatial or
+                   topological one), not guessed/truncated. No bond_dim cap
+                   is supported -- outside its intended particle-conserving
+                   or tree-graph circuit class, cost grows like a standard
+                   exact MPS.
 ``'hamiltonian'``  Direct Hamiltonian evolution without gate decomposition.
                    Use with :meth:`CircuitEngine.evolve_hamiltonian`.
 ``'gaussian'``     Gaussian covariance matrix simulation. Exact for Clifford
@@ -77,6 +83,11 @@ _TIER_DEPTH_LIMITS: List[Tuple[int, int]] = [
 ]
 
 # Modes that have no depth restriction (exact or non-MPS, see _EXACT_MODES set)
+# NOTE: 'geometric_mps' is intentionally NOT included here. Unlike the modes
+# below, it has no enforced truncation cap -- for a circuit outside its
+# intended particle-conserving/tree class its bond dimension grows like a
+# standard exact MPS (same failure mode as 'mps'/'cluster_mps'). It must keep
+# the standard tier-depth safety net.
 _EXACT_MODES = {"statevector", "cluster_statevector", "greens", "gaussian"}
 # Statevector mode qubit cap
 _STATEVECTOR_MAX_QUBITS = 20
@@ -174,6 +185,7 @@ _MODE_MULTIPLIER: Dict[str, float] = {
     "statevector":          1.0,
     "cluster_mps":          1.5,
     "mps":                  2.0,
+    "geometric_mps":        1.5,  # placeholder -- not yet benchmarked; same as default
     "cluster_statevector":  3.0,
     "greens":               1.2,
     "gaussian":             1.0,
@@ -188,6 +200,9 @@ _MODE_MULTIPLIER: Dict[str, float] = {
 }
 
 # Modes that use the statevector (2^N) kernel rather than MPS
+# NOTE: 'geometric_mps' is intentionally NOT included -- it is architecturally
+# an MPS variant (cost ~ O(N*chi^3*G)), not a dense O(2^N) statevector, so it
+# uses the MPS cost formula below like 'mps'/'cluster_mps'.
 _SV_MODES = {"statevector", "cluster_statevector", "greens", "gaussian"}
 
 

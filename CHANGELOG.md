@@ -7,18 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-> **A note on breaking changes in the upcoming release**
->
-> During early development, several internal codenames crept into the public API
-> (`KLT`, `klt`, `Vortex`, `GMPS`, `GESS`, `Nexus`). These names meant something
-> internally but were opaque and confusing to anyone reading the code or docs for
-> the first time. Rather than carry that confusion forward to v1.0, we decided to
-> rename everything clearly while the SDK is still in beta and the user base is small.
-> We know breaking changes are painful — we kept the list tight and the new names
-> are straightforward. Please update to the latest version and replace the old names
-> using the table in the `[Unreleased]` section below.
->
-> **`pip install --upgrade qumulator-sdk`**
+## [Unreleased] — September 5, 2026
+
+- `src/qumulator/circuit.py` — Added `"geometric_mps"` to the client-side cost
+  model (`_MODE_MULTIPLIER`, placeholder value pending real benchmark data) and
+  to the `Execution modes` docstring. Confirmed (and documented in code
+  comments) that `"geometric_mps"` correctly falls through to the standard
+  tier-depth client-side check rather than `_EXACT_MODES` — that mode has no
+  enforced truncation cap, so the depth safety net must stay in place.
+- `docs/modes.md` — Added `"geometric_mps"` to the mode table: an exact,
+  non-truncated MPS backend whose bond dimension is derived from circuit
+  geometry rather than a guessed/truncated χ. Added a new auto-routing rule:
+  particle-number-conserving circuits (Givens/iSWAP-family ansätze) now route
+  to `"geometric_mps"` regardless of apparent entanglement-graph density.
+- `docs/modes.md` — Clarified word choices that are reused from other
+  subfields: `"cluster_*"` modes mean connected components of the circuit's
+  entanglement graph, not the measurement-based-quantum-computing "cluster
+  state" resource; `"gaussian"` is the qubit-Clifford adaptation of the
+  continuous-variable Gaussian-state formalism, not a photonic mode. Also
+  clarified `"kuramoto"` is exact for genuine bosonic/BEC problems but an
+  approximate heuristic for general qubit circuits.
+- Removed a stale "breaking changes in the upcoming release" notice from the
+  top of this file — the codename rename it warned about (`KLT`/`Vortex`/
+  `GMPS`/`GESS`/`Nexus` → current names) completed and has been the default
+  for several releases (its README twin was already retired in the July 26
+  entry below).
+- `CHANGELOG.md` — This entry.
 
 ---
 
